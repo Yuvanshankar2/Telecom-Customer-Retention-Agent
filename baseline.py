@@ -23,6 +23,5 @@ for i in prediction:
 churn_rate  = churn_count/len(prediction)
 print("Churn Rate: ", churn_rate)
 print("Baseline recall score: ",recall_score(y_test,prediction))
-print("Baseline precision score: ",precision_score(y_test,prediction))
 
 

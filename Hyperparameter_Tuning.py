@@ -64,10 +64,7 @@ class Hyperparameter_Tuning():
         values = explainer(self.X_test,check_additivity=False)
         #shap.summary_plot(values,self.X_test)
         print("Recall score without threshold: ",recall_score(self.y_test,y_predicted_before))
-        print("Precision score without threshold: ",precision_score(self.y_test,y_predicted_before))
-
         print("Recall score with threshold: ",recall_score(self.y_test,y_predicted))
-        print("Precision score with threshold: ",precision_score(self.y_test,y_predicted))
         print("Threshold value: ", index)
 
         return updated_model, optimal_threshold, explainer
