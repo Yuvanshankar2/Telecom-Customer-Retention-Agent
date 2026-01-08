@@ -33,13 +33,13 @@ git clone
 ```
 ### 2. Create and activate a virtual environment
 
-### macOS/Linux
+#### macOS/Linux
 ``` bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### Windows
+#### Windows
 ``` bash
 python -m venv venv
 venv\Scripts\activate
@@ -50,8 +50,8 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 ### 4. Set up environment variables
-Create an OpenRouter API key to access the LLM 
-Create a .env file in the root directory and store your key.
+- Create an OpenRouter API key to access the LLM 
+- Create a .env file in the root directory and store your key.
 
 ### 5. Run the project
  Run LLM.py
