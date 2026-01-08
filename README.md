@@ -21,7 +21,43 @@ Key features include:
 This project showcases a **modern AI workflow**, bridging traditional data science with **LLM-driven reasoning and explainability**, and is designed to support future NLP and retrieval-based extensions.
 
 ---
-### Data Processing
+
+## Getting Started
+
+Follow these steps to set up and run this repository:
+
+
+# 1. Clone the repository
+``` bash
+git clone
+```
+# 2. Create and activate a virtual environment
+
+# macOS/Linux
+``` bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+# Windows
+``` bash
+python -m venv venv
+venv\Scripts\activate
+```
+# 3. Install dependencies
+``` bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+# 4. Set up environment variables
+# Create an OpenRouter API key to access the LLM 
+# Create a .env file in the root directory and store your key.
+
+# 5. Run the project
+# Run LLM.py
+
+---
+### Data Processing Phase
 
 The data processing stage is implemented in the `Data_Processing` class and focuses on preparing categorical features for analysis of the churn variable.
 
@@ -64,7 +100,7 @@ The method returns a pandas `DataFrame` containing the processed numerical featu
 
 ---
 
-### Hyperparameter Tuning
+### Hyperparameter Tuning Phase
 
 The hyperparameter tuning stage is implemented in the `Hyperparameter_Tuning` class and is responsible for optimizing a **Random Forest classifier** for churn prediction. The process focuses on maximizing **recall**, ensuring that the model is sensitive to detecting churned customers.  
 
@@ -100,7 +136,7 @@ The hyperparameter tuning stage is implemented in the `Hyperparameter_Tuning` cl
 - `explainer`: SHAP explainer object for feature-level interpretability
 
 ---
-## Prompt Distillation
+## Prompt Distillation Phase
 
 High-quality LLM outputs depend heavily on **prompt design**. This repository includes a **Prompt Distillation module** that identifies the most effective prompt template for your dataset.
 
@@ -128,7 +164,4 @@ High-quality LLM outputs depend heavily on **prompt design**. This repository in
 - Provides a **robust, and reproducible workflow**    
 
 ---
-
-## Getting Started
-
 
