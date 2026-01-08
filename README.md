@@ -27,34 +27,34 @@ This project showcases a **modern AI workflow**, bridging traditional data scien
 Follow these steps to set up and run this repository:
 
 
-# 1. Clone the repository
+## 1. Clone the repository
 ``` bash
 git clone
 ```
-# 2. Create and activate a virtual environment
+## 2. Create and activate a virtual environment
 
-# macOS/Linux
+## macOS/Linux
 ``` bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-# Windows
+## Windows
 ``` bash
 python -m venv venv
 venv\Scripts\activate
 ```
-# 3. Install dependencies
+## 3. Install dependencies
 ``` bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
-# 4. Set up environment variables
-# Create an OpenRouter API key to access the LLM 
-# Create a .env file in the root directory and store your key.
+## 4. Set up environment variables
+## Create an OpenRouter API key to access the LLM 
+## Create a .env file in the root directory and store your key.
 
-# 5. Run the project
-# Run LLM.py
+## 5. Run the project
+## Run LLM.py
 
 ---
 ### Data Processing Phase
