@@ -15,21 +15,19 @@ class Hyperparameter_Tuning():
 
     def __init__(self,data):
         self.data=data
-        
+        self.load()
 
     def load(self):
         self.X = self.data.drop(columns=["Churn"])
         self.y = self.data["Churn"]
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X,self.y, test_size=0.2)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X,self.y, stratify=self.y, test_size=0.2, random_state=42)
 
     def objectiveFunction(self,trial):
-        self.load()
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X,self.y, test_size=0.2)
         n_estimators = trial.suggest_int("n_estimators",50,300)
         max_depth = trial.suggest_int("max_depth",5,50)
         min_samples_split = trial.suggest_int("min_samples_split",2,50)
-        max_features = trial.suggest_int("max_features",1,13)
-        model = RandomForestClassifier(n_estimators=n_estimators,max_depth=max_depth, min_samples_split= min_samples_split,max_features=max_features, class_weight="balanced")
+        max_features = trial.suggest_float("max_features",0.3,1.0)
+        model = RandomForestClassifier(n_estimators=n_estimators,max_depth=max_depth, min_samples_split= min_samples_split,max_features=max_features, class_weight="balanced",random_state=42)
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         return cross_val_score(model, self.X_train,self.y_train, cv=cv,scoring="recall").mean()
 
@@ -55,7 +53,7 @@ class Hyperparameter_Tuning():
 
         #plt.plot(recall,precision)
         #plt.show()
-        index = np.argmin(np.abs(recall - 0.9))
+        index = np.where(recall[:-1]>=0.9)[0][-1]
         optimal_threshold = thresholds[index]
         y_predicted = updated_model.predict_proba(self.X_test)[:,1]
         y_predicted = (y_predicted >= optimal_threshold).astype(int)

@@ -1,0 +1,29 @@
+# Telecom-Churn
+
+Source of the dataset: https://www.kaggle.com/datasets/vhcg77/telcom-churns-dataset
+
+
+# Model and API License Information
+
+## Model
+
+**Name:** `nvidia/nemotron-3-nano-30b-a3b:free`  
+**Provider:** NVIDIA  
+**License:** **NVIDIA Open Model License**  
+Official license text:  
+https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/
+
+This model is provided under the NVIDIA Open Model License, which grants permission to use, reproduce, and distribute the model weights and derivatives according to the license terms. This repository does **not** include the model weights themselves and does not grant rights beyond those provided by the official license.
+
+## API
+
+**Service:** OpenRouter  
+**API Endpoint:** https://openrouter.ai/api/v1/chat/completions
+
+Using this service requires a valid API key. Do **not** commit your API keys or other credentials to this repository. Use environment variables (e.g., a `.env` file) or other secure methods for secret management.
+
+## Notes
+
+- Ensure compliance with the NVIDIA Open Model License when using or redistributing the model.
+- This repository contains code and configuration to access the model via API; it does not include the model weights.
+- Follow OpenRouter’s terms of service for API usage (rate limits, fair use policies, etc.).
