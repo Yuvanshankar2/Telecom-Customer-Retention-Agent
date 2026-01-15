@@ -165,3 +165,21 @@ High-quality LLM outputs depend heavily on **prompt design**. This repository in
 
 ---
 
+###LICESNE LINKS:
+- **Authors/Creators:** Asem Omari, Omaia Al-Omari, Tariq Al-Omari, and Suliman Mohamed Fati  
+- **Source:** PMC (PubMed Central), article PMC12426120. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC12426120/
+
+- **License:** **Creative Commons Attribution 4.0 International License (CC BY 4.0)**. License deed: [https://creativecommons.org/licenses/by/4.0/](https://creativecommons.org/licenses/by/4.0/)  
+
+- **Service:** OpenRouter  
+- **API Endpoint:** https://openrouter.ai/api/v1/chat/completions
+
+- **License:** **NVIDIA Open Model License**  
+Official license text:  
+https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/
+
+- **Source of the dataset:** https://www.kaggle.com/datasets/vhcg77/telcom-churns-dataset
+
+
+
+
