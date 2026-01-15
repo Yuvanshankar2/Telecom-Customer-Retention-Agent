@@ -7,7 +7,7 @@ class Application():
 
     def predictor(self,filename):
         print("Starting")
-        raw_data = pd.read_csv(filename) 
+        raw_data = pd.read_csv("TelcoChurn.csv") 
         processor = Data_Processing(raw_data)
         processed_data = processor.processData()
         print("Done with pre processing")

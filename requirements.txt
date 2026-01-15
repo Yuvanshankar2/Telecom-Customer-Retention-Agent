@@ -10,3 +10,11 @@ python-dotenv==1.0.1
 langgraph==0.2.0
 transformers==4.41.0
 sentence-transformers==2.2.2
+fastapi
+uvicorn
+python-multipart
+pandas
+requests
+python-dotenv
+typing_extensions
+crewai 

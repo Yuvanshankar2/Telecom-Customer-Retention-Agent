@@ -27,3 +27,29 @@ Using this service requires a valid API key. Do **not** commit your API keys or 
 - Ensure compliance with the NVIDIA Open Model License when using or redistributing the model.
 - This repository contains code and configuration to access the model via API; it does not include the model weights.
 - Follow OpenRouter’s terms of service for API usage (rate limits, fair use policies, etc.).
+
+## RAG Source Attribution (CC BY 4.0)
+
+This project uses material derived from the following work:
+
+- **Title of the work:** "A predictive analytics approach to improve telecom's customer retention"  
+- **Authors/Creators:** Asem Omari, Omaia Al-Omari, Tariq Al-Omari, and Suliman Mohamed Fati  
+- **Source:** PMC (PubMed Central), article PMC12426120. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC12426120/ [attached_file:1]  
+- **License:** This work is licensed under the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**. License deed: https://creativecommons.org/licenses/by/4.0/  
+- **Copyright Notice:** © 2025 Asem Omari, Omaia Al-Omari, Tariq Al-Omari, and Suliman Mohamed Fati. Published by Frontiers Media SA. All rights reserved by the original rights holders, except as permitted by the CC BY 4.0 license. [attached_file:1]
+
+### Use in this repository
+
+This repository includes RAG documents and derived text chunks based on, excerpted from, or adapted from the above work. These materials are used under the terms of the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**.
+
+- **Indication of Modifications:**  
+  - Content has been processed into semantic chunks, reformatted, and selectively quoted for retrieval-augmented generation (RAG) pipeline use.  
+  - Modifications include text segmentation, metadata extraction, and embedding preparation for vector database storage and retrieval.  
+  - No substantive changes to meaning, facts, or authorial intent were made.
+
+When redistributing or reusing these RAG artifacts, you must:
+
+1. Retain this full attribution (title, authors, source URI, license name + link, copyright notice).  
+2. Indicate any further modifications clearly.  
+3. Comply with all terms of the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**.
+

@@ -1,0 +1,93 @@
+[
+    {
+      "query": "What customer factors does the paper highlight as most important for improving telecom customer retention?",
+      "relevant_chunks": [
+        "The study identifies contract type, monthly charges, tenure and churn-related indicators as the most influential customer attributes. By focusing retention analysis on these features, telecom providers can better understand which levers—such as contract structure and pricing—most strongly affect whether customers stay or leave.[page:1]"
+      ]
+    },
+    {
+      "query": "How does the paper connect predictive analytics to customer retention strategy in telecom?",
+      "relevant_chunks": [
+        "The authors position churn prediction as a foundation for customer retention strategy. By using machine learning models to identify customers with high churn risk and linking these predictions to business KPIs, telecom operators can take proactive measures such as targeted offers, plan adjustments and service enhancements to retain valuable subscribers.[page:1]"
+      ]
+    },
+    {
+      "query": "Why do the authors argue that retention is more cost-effective than acquisition for telecom operators?",
+      "relevant_chunks": [
+        "In the introduction, the paper emphasizes that retaining existing customers is significantly more cost-effective than acquiring new ones. The discussion on customer acquisition cost versus average revenue per user underlines that losing a subscriber erodes profitability, making customer retention a critical strategic priority for telecom companies.[page:1]"
+      ]
+    },
+    {
+      "query": "Which business KPIs are recommended to evaluate the impact of customer retention efforts?",
+      "relevant_chunks": [
+        "The paper highlights churn rate, customer lifetime value (CLTV), average revenue per user (ARPU), customer acquisition cost (CAC), customer retention rate (CRR) and net promoter score (NPS) as key performance indicators. These KPIs provide a quantitative framework to assess how predictive models and subsequent retention actions influence overall business performance.[page:1]"
+      ]
+    },
+    {
+      "query": "How should telecoms use churn probabilities to prioritize retention interventions?",
+      "relevant_chunks": [
+        "The authors recommend combining churn probabilities with customer lifetime value and revenue contribution to prioritize retention. Customers with both high predicted churn risk and high CLTV are flagged as top candidates for proactive outreach, ensuring that limited retention budgets are focused on accounts where saving the relationship has the greatest financial impact.[page:1]"
+      ]
+    },
+    {
+      "query": "What data preprocessing steps does the paper consider essential before using predictions for retention decisions?",
+      "relevant_chunks": [
+        "The methodology section stresses the importance of data preprocessing—handling missing values in tenure and charges, addressing skewed distributions, removing redundant or highly correlated features and ensuring balanced representation. These steps are necessary to build reliable predictive models whose outputs can safely inform retention policies.[page:1]"
+      ]
+    },
+    {
+      "query": "Which predictive model performed best, and why is this important for customer retention planning?",
+      "relevant_chunks": [
+        "Among Support Vector Machines, Logistic Regression, K‑Nearest Neighbors and Naive Bayes, the Support Vector Machine achieved the highest accuracy, around 97%. Superior predictive performance means that retention teams can rely more confidently on the ranking of at‑risk customers, reducing wasted offers and improving the efficiency of retention campaigns.[page:1]"
+      ]
+    },
+    {
+      "query": "How does the paper suggest using interpretability methods like SHAP or LIME for retention?",
+      "relevant_chunks": [
+        "In the conclusion and future work, the authors propose incorporating interpretability techniques such as SHAP and LIME to explain individual churn predictions. By understanding which features drive risk for each customer, telecom managers can design personalized retention actions—for example, revisiting contract terms, addressing high pricing or improving specific service components.[page:1]"
+      ]
+    },
+    {
+      "query": "What does the study say about handling class imbalance for accurate retention targeting?",
+      "relevant_chunks": [
+        "The dataset used in the paper is imbalanced, with churners forming a minority. To address this, the authors employ techniques such as class weighting and stratified cross‑validation. Properly handling imbalance ensures that high‑risk customers are correctly identified, which is crucial when those predictions are used to trigger targeted retention strategies.[page:1]"
+      ]
+    },
+    {
+      "query": "How can telecoms translate churn drivers into concrete retention initiatives?",
+      "relevant_chunks": [
+        "The analysis shows that features like contract type, monthly charges and tenure are strong churn drivers. The authors explain that understanding these factors allows telecom companies to design concrete retention initiatives, such as offering discounts to high‑priced segments, encouraging migrations from month‑to‑month to longer contracts, or tailoring offers based on customer tenure.[page:1]"
+      ]
+    },
+    {
+      "query": "What role do ethical and governance considerations play in predictive retention analytics?",
+      "relevant_chunks": [
+        "The paper emphasizes ethical aspects including data privacy, regulatory compliance and model transparency. It argues that while predictive analytics can significantly improve customer retention, telecom providers must ensure responsible data handling and fair use of models when deciding which customers to target with retention efforts.[page:1]"
+      ]
+    },
+    {
+      "query": "How does the paper link customer sentiment measures like NPS to retention use cases?",
+      "relevant_chunks": [
+        "In the KPI discussion, the authors describe how metrics such as net promoter score (NPS) offer insight into customer sentiment and likelihood of recommending the service. They propose connecting predictive model outputs to NPS so that telecoms can differentiate between high‑risk customers who are also detractors, enabling more nuanced and effective retention actions.[page:1]"
+      ]
+    },
+    {
+      "query": "What is the reported churn level in the dataset and why does it matter for retention planning?",
+      "relevant_chunks": [
+        "The exploratory analysis reports that approximately 26.5% of customers in the IBM Telco dataset have churned, with 73.5% retained. This baseline churn rate helps telecoms estimate the scale of the retention challenge and informs how aggressively they may need to intervene across their customer base.[page:1]"
+      ]
+    },
+    {
+      "query": "How does integrating predictive analytics with KPIs help telecoms improve customer retention strategies?",
+      "relevant_chunks": [
+        "The conclusion explains that the contribution of the study lies in aligning predictive models with business‑relevant KPIs such as churn rate, CLTV, ARPU, CAC, CRR and NPS. By integrating these metrics, telecom companies can move from purely technical prediction to actionable strategies that directly support customer retention goals and financial outcomes.[page:1]"
+      ]
+    },
+    {
+      "query": "What future enhancements does the paper recommend to further support retention-focused decision making?",
+      "relevant_chunks": [
+        "The authors suggest future work on real‑time data integration, more advanced interpretability and deeper ethical safeguards. These enhancements would allow telecom operators to detect churn risk earlier, understand the reasons more clearly and act on them faster, thereby strengthening retention-focused decision making.[page:1]"
+      ]
+    }
+  ]
+  
