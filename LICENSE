@@ -1,6 +1,6 @@
 # Telecom-Churn
 
-Source of the dataset: https://www.kaggle.com/datasets/vhcg77/telcom-churns-dataset
+Source of the dataset: [https://www.kaggle.com/datasets/vhcg77/telcom-churns-dataset](https://www.kaggle.com/datasets/vhcg77/telcom-churns-dataset)
 
 
 # Model and API License Information
@@ -11,14 +11,14 @@ Source of the dataset: https://www.kaggle.com/datasets/vhcg77/telcom-churns-data
 **Provider:** NVIDIA  
 **License:** **NVIDIA Open Model License**  
 Official license text:  
-https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/
+[https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/)
 
 This model is provided under the NVIDIA Open Model License, which grants permission to use, reproduce, and distribute the model weights and derivatives according to the license terms. This repository does **not** include the model weights themselves and does not grant rights beyond those provided by the official license.
 
 ## API
 
 **Service:** OpenRouter  
-**API Endpoint:** https://openrouter.ai/api/v1/chat/completions
+**API Endpoint:** [https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)
 
 Using this service requires a valid API key. Do **not** commit your API keys or other credentials to this repository. Use environment variables (e.g., a `.env` file) or other secure methods for secret management.
 
@@ -34,8 +34,8 @@ This project uses material derived from the following work:
 
 - **Title of the work:** "A predictive analytics approach to improve telecom's customer retention"  
 - **Authors/Creators:** Asem Omari, Omaia Al-Omari, Tariq Al-Omari, and Suliman Mohamed Fati  
-- **Source:** PMC (PubMed Central), article PMC12426120. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC12426120/ [attached_file:1]  
-- **License:** This work is licensed under the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**. License deed: https://creativecommons.org/licenses/by/4.0/  
+- **Source:** PMC (PubMed Central), article PMC12426120. Available at: [https://pmc.ncbi.nlm.nih.gov/articles/PMC12426120/](https://pmc.ncbi.nlm.nih.gov/articles/PMC12426120/)  
+- **License:** This work is licensed under the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**. License deed: [https://creativecommons.org/licenses/by/4.0/](https://creativecommons.org/licenses/by/4.0/)  
 - **Copyright Notice:** © 2025 Asem Omari, Omaia Al-Omari, Tariq Al-Omari, and Suliman Mohamed Fati. Published by Frontiers Media SA. All rights reserved by the original rights holders, except as permitted by the CC BY 4.0 license. [attached_file:1]
 
 ### Use in this repository
