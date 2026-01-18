@@ -9,7 +9,8 @@ frontend/.gitignore
 api/README.md
 code.html
 screen.png
-.cursor
+.cursor/
+
 
 
 

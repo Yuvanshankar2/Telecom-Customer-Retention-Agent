@@ -101,7 +101,7 @@ class ChurnReasoningPipeline:
             print("Customer insights already exists")
             return state
         
-        #Wrap in try except to catch if the predictor function runs twice
+        
         try:
             print("Generating customer insights...")
             customer_json = self.application.predictor(state["input_file_name"])
