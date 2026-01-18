@@ -166,7 +166,6 @@ class ChurnReasoningPipeline:
         if "customer_reasons" not in state:
             raise KeyError("Customer reasons not found in state")
         
-        # Extract query from reasoning_node output (combine all reasons or use first)
         customer_reasons = state["customer_reasons"]
         if not customer_reasons:
             raise ValueError("Customer reasons list is empty")
@@ -262,7 +261,7 @@ def main() -> None:
         pipeline_instance = ChurnReasoningPipeline(state=initial_state)
         result = pipeline_instance.run()
         
-        # Print churn probabilities of each customer
+        # Print churn probabilities, reasons and strategies of each customer. Used for debugging.
         for i, customer_insight in enumerate(result["customer_insights_values"], start=1):
             print(f"Churn probability for customer {i}: {customer_insight['churn_probability']}")
 
