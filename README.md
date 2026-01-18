@@ -255,9 +255,6 @@ The CSV file must contain the following columns in the specified order and forma
 
 6. **File Size:** 
    - Large files (>1000 rows) may take several minutes to process
-   - The frontend polls for results every 5 seconds with a maximum timeout of 30 minutes
-   - Processing time scales linearly with the number of customers
-
 #### Data Processing Behavior
 
 
