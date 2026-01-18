@@ -22,7 +22,8 @@ class Application():
         return insights
 
 
-run = Application()
+if __name__ == "__main__":
+    run = Application()
 
-run.predictor("TelcoChurn.csv")
+    run.predictor("TelcoChurn.csv")
         

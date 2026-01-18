@@ -65,7 +65,7 @@ def _prepare_crewai_input(query: str, context: str) -> str:
         verbose=False
     )
     output = crew.kickoff()
-    return output
+    return str(output)
 
 
 class State(TypedDict):
@@ -207,7 +207,7 @@ class ChurnReasoningPipeline:
             customer_context = retrieved_context[retrieved_index]
             customer_context = "\n\n".join(customer_context)
             output = _prepare_crewai_input(reason, customer_context)
-            crewai_output_list.append(output)
+            crewai_output_list.append(str(output))
             retrieved_index+=1
         return {"crewai_output": crewai_output_list}
     
@@ -239,7 +239,9 @@ class ChurnReasoningPipeline:
 
 def execute_pipeline(initial_state: Optional[Dict] = None) -> State:
     if initial_state is None:
-        initial_state = {"customer_insights_values": {}, "customer_reasons": [],"input_file_name":"TelcoChurn.csv","crewai_output":[]}
+        initial_state = {"customer_insights_values": {}, "customer_reasons": [],"input_file_name":None,"crewai_output":[]}
+    if initial_state["input_file_name"] is None:
+        raise ValueError("Input file name is required") 
     pipeline_instance = ChurnReasoningPipeline(state=initial_state)
     result = pipeline_instance.run()
     customer_churn=[]
@@ -248,7 +250,8 @@ def execute_pipeline(initial_state: Optional[Dict] = None) -> State:
             "id":key,
             "churn_probability": customer_insight['churn_probability']
         })
-    customer_data={"customer_churn":customer_churn,
+    customer_data={
+        "customer_churn":customer_churn,
     "customer_reasons":result["customer_reasons"],
     "retention_strategies":result["crewai_output"]}
     return customer_data

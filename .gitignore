@@ -4,3 +4,10 @@ venv/
 .env
 Reasons.txt
 temp
+frontend/README.md
+frontend/.gitignore
+api/README.md
+code.html
+screen.png
+
+

@@ -74,7 +74,7 @@
     {
       "query": "What is the reported churn level in the dataset and why does it matter for retention planning?",
       "relevant_chunks": [
-        "The exploratory analysis reports that approximately 26.5% of customers in the IBM Telco dataset have churned, with 73.5% retained. This baseline churn rate helps telecoms estimate the scale of the retention challenge and informs how aggressively they may need to intervene across their customer base.[page:1]"
+        "The exploratory analysis reports that approximately 26.5% of customers in the Telco dataset have churned, with 73.5% retained. This baseline churn rate helps telecoms estimate the scale of the retention challenge and informs how aggressively they may need to intervene across their customer base.[page:1]"
       ]
     },
     {
