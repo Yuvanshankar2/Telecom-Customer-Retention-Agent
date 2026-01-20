@@ -69,3 +69,43 @@ export const getPipelineStatus = async (taskId) => {
     }
   }
 };
+
+/**
+ * Send a chat message to the telecom chatbot.
+ * 
+ * @param {string} message - The user's message
+ * @param {Array} conversationHistory - Optional array of previous messages [{role: string, content: string}]
+ * @returns {Promise<Object>} Response containing response text and updated conversation history
+ * @throws {Error} If the API call fails or returns an error
+ */
+export const sendChatMessage = async (message, conversationHistory = []) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/chat`,
+      {
+        message,
+        conversation_history: conversationHistory,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000, // 60 seconds timeout for LLM response
+      }
+    );
+
+    return response.data; // { response: string, conversation_history: Array }
+  } catch (error) {
+    if (error.response) {
+      // Server responded with error status
+      const errorMessage = error.response.data?.detail || error.response.data?.error || 'Unknown error occurred';
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      // Request was made but no response received
+      throw new Error('No response from server. Please check if the backend is running.');
+    } else {
+      // Error setting up the request
+      throw new Error(`Error: ${error.message}`);
+    }
+  }
+};

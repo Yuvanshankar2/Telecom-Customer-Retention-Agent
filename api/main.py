@@ -11,10 +11,13 @@ import tempfile
 import os
 import uuid
 import threading
+import requests
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 import sys
+from dotenv import load_dotenv
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,9 +26,42 @@ from fastapi.responses import JSONResponse
 # Add parent directory to path to import LLM module
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Load environment variables
+load_dotenv()
+
 # In-memory task storage: {task_id: {status, result, error, created_at, completed_at}}
 task_storage: Dict[str, Dict[str, Any]] = {}
 task_storage_lock = threading.Lock()  # Thread-safe access to task_storage
+
+# OpenRouter configuration
+OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+MODEL_NAME = "nvidia/nemotron-3-nano-30b-a3b:free"
+
+# Telecom chatbot system prompt
+TELECOM_SYSTEM_PROMPT = """You are a telecom industry and customer retention expert assisting internal business users. Your knowledge is strictly limited to telecommunications topics including:
+
+- Telecom devices (handsets, routers, 5G devices, compatibility)
+- Mobile, broadband, and converged plans
+- Churn drivers in telecom (pricing, network quality, competition, device lifecycle)
+- Retention strategies and best practices
+- Loyalty programs, discounts, contract strategies
+- Prepaid vs postpaid dynamics
+- Telecom KPIs (ARPU, churn rate, CAC, LTV)
+
+You must:
+- Provide clear, structured, business-oriented answers
+- Focus on practical and explanatory content
+- Be concise but informative
+
+You must NOT answer questions about unrelated topics (coding, finance, healthcare, general knowledge, etc.). If asked about non-telecom topics, politely redirect to telecom-related subjects.
+
+Respond only to telecom-related questions."""
+
+
+class ChatRequest(BaseModel):
+    """Request model for chat endpoint."""
+    message: str
+    conversation_history: Optional[List[Dict[str, str]]] = []
 
 app = FastAPI(
     title="Churn Analysis Pipeline API",
@@ -253,6 +289,118 @@ async def get_pipeline_status(task_id: str) -> JSONResponse:
         response["error"] = task_data["error"]
     
     return JSONResponse(content=response)
+
+
+@app.post("/chat")
+async def chat(request: ChatRequest) -> JSONResponse:
+    """Chat endpoint for telecom domain-specific chatbot.
+    
+    Args:
+        request: ChatRequest containing message and optional conversation_history
+        
+    Returns:
+        JSON response containing:
+        - response: LLM response text
+        - conversation_history: Updated conversation history with new messages
+        
+    Raises:
+        HTTPException: 400 for invalid request or missing message
+        HTTPException: 500 for server errors during LLM call
+    """
+    # Validate message
+    if not request.message or not request.message.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Message cannot be empty."
+        )
+    
+    try:
+        # Get API key from environment
+        llm_key = os.getenv("LLM_KEY_1")
+        if not llm_key:
+            raise HTTPException(
+                status_code=500,
+                detail="OpenRouter API key not configured."
+            )
+        
+        # Build messages array with system prompt and conversation history
+        messages = [
+            {"role": "system", "content": TELECOM_SYSTEM_PROMPT}
+        ]
+        
+        # Add conversation history (without system prompt)
+        if request.conversation_history:
+            # Filter out any existing system prompts from history
+            for msg in request.conversation_history:
+                if msg.get("role") != "system":
+                    messages.append(msg)
+        
+        # Add current user message
+        messages.append({"role": "user", "content": request.message.strip()})
+        
+        # Prepare OpenRouter request
+        payload = {
+            "model": MODEL_NAME,
+            "messages": messages
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {llm_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Call OpenRouter API
+        response = requests.post(
+            OPENROUTER_ENDPOINT,
+            headers=headers,
+            json=payload,
+            timeout=60  # 60 second timeout
+        )
+        
+        # Handle API errors
+        if response.status_code != 200:
+            error_detail = response.json().get("error", {}).get("message", "Unknown error from OpenRouter")
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"OpenRouter API error: {error_detail}"
+            )
+        
+        # Extract response
+        response_data = response.json()
+        llm_response = response_data["choices"][0]["message"]["content"]
+        
+        # Build updated conversation history (for frontend state management)
+        updated_history = request.conversation_history.copy() if request.conversation_history else []
+        updated_history.append({"role": "user", "content": request.message.strip()})
+        updated_history.append({"role": "assistant", "content": llm_response})
+        
+        # Return response
+        return JSONResponse(content={
+            "response": llm_response,
+            "conversation_history": updated_history
+        })
+    
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    
+    except requests.exceptions.Timeout:
+        raise HTTPException(
+            status_code=504,
+            detail="Request to LLM service timed out. Please try again."
+        )
+    
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error communicating with LLM service: {str(e)}"
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

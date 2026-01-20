@@ -4,8 +4,8 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 
-const CustomerCard = ({ customer, isExpanded, onToggle }) => {
-  const { id, churn_probability, risk_level, reason, strategy } = customer;
+const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
+  const { id, churn_probability, risk_level, reason } = customer;
   
   // Calculate stroke-dasharray for circular progress (percentage of 100)
   const circumference = 2 * Math.PI * 15.9155;
@@ -54,7 +54,13 @@ const CustomerCard = ({ customer, isExpanded, onToggle }) => {
         isExpanded ? 'ring-2 ring-primary border-transparent shadow-xl' : ''
       }`}
       tabIndex={0}
-      onClick={onToggle}
+      onClick={(e) => {
+        // Don't toggle if clicking the strategy button
+        if (e.target.closest('.view-strategy-btn')) {
+          return;
+        }
+        onToggle();
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -123,18 +129,19 @@ const CustomerCard = ({ customer, isExpanded, onToggle }) => {
             </div>
           )}
           
-          {/* Strategy */}
-          {strategy && (
-            <div>
-              <div className="flex items-center gap-2 mb-3 text-primary">
-                <VerifiedIcon className="w-[18px] h-[18px]" />
-                <h4 className="font-black text-[10px] uppercase tracking-widest">Strategy</h4>
-              </div>
-              <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-3">
-                <p className="text-xs italic text-slate-700 dark:text-slate-300">
-                  "{strategy}"
-                </p>
-              </div>
+          {/* View Retention Strategy Button */}
+          {onViewStrategy && (
+            <div className="pt-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewStrategy();
+                }}
+                className="view-strategy-btn w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold shadow-sm hover:bg-primary/90 transition-colors"
+              >
+                <VerifiedIcon className="w-4 h-4" />
+                View Retention Strategy
+              </button>
             </div>
           )}
         </div>
