@@ -1,19 +1,57 @@
-import React from 'react';
-import WarningIcon from '@mui/icons-material/Warning';
+import React, { useMemo } from 'react';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
+/**
+ * Memoized SVG component for churn probability ring.
+ * Prevents SVG recalculation on every render.
+ */
+const ChurnRingSVG = React.memo(({ churnProbability, ringColor, textColor }) => {
+  const strokeDasharray = `${churnProbability}, 100`;
+  
+  return (
+    <div className="relative w-24 h-24">
+      <svg className="w-full h-full churn-ring" viewBox="0 0 36 36">
+        <circle
+          className="text-slate-100 dark:text-slate-700"
+          cx="18"
+          cy="18"
+          fill="none"
+          r="15.9155"
+          stroke="currentColor"
+          strokeWidth="3"
+        />
+        <path
+          className={ringColor}
+          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+          fill="none"
+          stroke="currentColor"
+          strokeDasharray={strokeDasharray}
+          strokeLinecap="round"
+          strokeWidth="3"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center flex-col">
+        <span className={`text-xl font-black leading-none ${textColor}`}>
+          {Math.round(churnProbability)}%
+        </span>
+        <span className="text-[8px] font-bold text-slate-400 uppercase">Risk</span>
+      </div>
+    </div>
+  );
+});
 
+ChurnRingSVG.displayName = 'ChurnRingSVG';
+
+/**
+ * CustomerCard component with memoization for performance optimization.
+ * Only re-renders when customer data or expansion state changes.
+ */
 const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
   const { id, churn_probability, risk_level, reason } = customer;
   
-  // Calculate stroke-dasharray for circular progress (percentage of 100)
-  const circumference = 2 * Math.PI * 15.9155;
-  const strokeDashoffset = circumference - (churn_probability / 100) * circumference;
-  const strokeDasharray = `${churn_probability}, 100`;
-  
-  // Determine colors based on risk level
-  const getRiskColors = () => {
+  // Memoize risk colors calculation - only recalculates when risk_level or churn_probability changes
+  const colors = useMemo(() => {
     switch (risk_level) {
       case 'low':
         return {
@@ -44,9 +82,7 @@ const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
           label: 'Unknown'
         };
     }
-  };
-  
-  const colors = getRiskColors();
+  }, [risk_level, churn_probability]);
   
   return (
     <div
@@ -55,8 +91,15 @@ const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
       }`}
       tabIndex={0}
       onClick={(e) => {
-        // Don't toggle if clicking the strategy button
-        if (e.target.closest('.view-strategy-btn')) {
+        // Don't toggle if clicking interactive elements (buttons, icons)
+        const target = e.target;
+        if (
+          target.closest('.view-strategy-btn') ||
+          target.closest('button') ||
+          target.tagName === 'BUTTON' ||
+          target.tagName === 'SVG' ||
+          target.closest('svg')
+        ) {
           return;
         }
         onToggle();
@@ -83,53 +126,18 @@ const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
       
       {/* Circular Progress Ring */}
       <div className="flex flex-col items-center justify-center py-4">
-        <div className="relative w-24 h-24">
-          <svg className="w-full h-full churn-ring" viewBox="0 0 36 36">
-            <circle
-              className="text-slate-100 dark:text-slate-700"
-              cx="18"
-              cy="18"
-              fill="none"
-              r="15.9155"
-              stroke="currentColor"
-              strokeWidth="3"
-            />
-            <path
-              className={colors.ring}
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              fill="none"
-              stroke="currentColor"
-              strokeDasharray={strokeDasharray}
-              strokeLinecap="round"
-              strokeWidth="3"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center flex-col">
-            <span className={`text-xl font-black leading-none ${colors.text}`}>
-              {Math.round(churn_probability)}%
-            </span>
-            <span className="text-[8px] font-bold text-slate-400 uppercase">Risk</span>
-          </div>
-        </div>
+        <ChurnRingSVG
+          churnProbability={churn_probability}
+          ringColor={colors.ring}
+          textColor={colors.text}
+        />
       </div>
       
-      {/* Collapsible Details */}
-      <div className={`customer-details ${isExpanded ? 'max-h-[500px]' : 'max-h-0'}`}>
-        <div className="mt-6 space-y-6 pt-6 border-t border-slate-100 dark:border-slate-700">
-          {/* Risk Drivers */}
-          {reason && (
-            <div>
-              <div className="flex items-center gap-2 mb-3 text-risk-high">
-                <WarningIcon className="w-[18px] h-[18px]" />
-                <h4 className="font-black text-[10px] uppercase tracking-widest">Risk Drivers</h4>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                <span className="font-bold text-slate-900 dark:text-white">{reason}</span>
-              </p>
-            </div>
-          )}
-          
-          {/* View Retention Strategy Button */}
+      {/* Collapsible Details - Using conditional rendering for react-window compatibility */}
+      {/* Content only exists in DOM when expanded, ensuring real height changes */}
+      {isExpanded && (
+        <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700">
+          {/* View Customer Profile Button */}
           {onViewStrategy && (
             <div className="pt-2">
               <button
@@ -140,12 +148,12 @@ const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
                 className="view-strategy-btn w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold shadow-sm hover:bg-primary/90 transition-colors"
               >
                 <VerifiedIcon className="w-4 h-4" />
-                View Retention Strategy
+                View Customer Profile
               </button>
             </div>
           )}
         </div>
-      </div>
+      )}
       
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
@@ -160,4 +168,14 @@ const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
   );
 };
 
-export default CustomerCard;
+// Memoize CustomerCard with custom comparison function
+// Only re-render if customer id, expansion state, or customer data changes
+export default React.memo(CustomerCard, (prevProps, nextProps) => {
+  return (
+    prevProps.customer.id === nextProps.customer.id &&
+    prevProps.isExpanded === nextProps.isExpanded &&
+    prevProps.customer.churn_probability === nextProps.customer.churn_probability &&
+    prevProps.customer.risk_level === nextProps.customer.risk_level &&
+    prevProps.customer.reason === nextProps.customer.reason
+  );
+});

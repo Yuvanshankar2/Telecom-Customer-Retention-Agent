@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import SearchIcon from '@mui/icons-material/Search';
@@ -6,7 +6,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import SortIcon from '@mui/icons-material/Sort';
 import { useApp } from '../context/AppContext';
 import FileUpload from '../components/FileUpload';
-import CustomerCard from '../components/CustomerCard';
+import VirtualizedCustomerGrid from '../components/VirtualizedCustomerGrid';
 import KPICards from '../components/KPICards';
 
 /**
@@ -39,20 +39,23 @@ function CustomerListPage() {
   } = useApp();
 
   /**
-   * Toggle expanded state of a customer card
+   * Toggle expanded state of a customer card.
+   * Memoized with useCallback to prevent unnecessary re-renders.
+   * Only one card can be expanded at a time - clicking same card closes it.
    * @param {string} cardId - The ID of the card to toggle
    */
-  const handleCardToggle = (cardId) => {
-    setExpandedCardId(expandedCardId === cardId ? null : cardId);
-  };
+  const handleCardToggle = useCallback((cardId) => {
+    setExpandedCardId((prevId) => prevId === cardId ? null : cardId);
+  }, []); // Empty deps array - setExpandedCardId is stable from context
 
   /**
-   * Navigate to retention strategy page for a customer
+   * Navigate to retention strategy page for a customer.
+   * Memoized with useCallback to prevent unnecessary re-renders.
    * @param {Object} customer - The customer object to view strategy for
    */
-  const handleViewStrategy = (customer) => {
+  const handleViewStrategy = useCallback((customer) => {
     navigate(`/customers/${customer.id}/retention`, { state: { customer } });
-  };
+  }, [navigate]);
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased h-screen flex flex-col">
@@ -209,20 +212,16 @@ function CustomerListPage() {
             </div>
           )}
 
-          {/* Customer Cards Grid */}
+          {/* Customer Cards Grid - Virtualized for performance */}
           {filteredCustomers.length > 0 ? (
-            <div className="max-h-[calc(100vh-500px)] overflow-y-auto pr-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-                {filteredCustomers.map((customer) => (
-                  <CustomerCard
-                    key={customer.id}
-                    customer={customer}
-                    isExpanded={expandedCardId === customer.id}
-                    onToggle={() => handleCardToggle(customer.id)}
-                    onViewStrategy={() => handleViewStrategy(customer)}
-                  />
-                ))}
-              </div>
+            <div className="mb-12">
+              <VirtualizedCustomerGrid
+                customers={filteredCustomers}
+                expandedCardId={expandedCardId}
+                onCardToggle={handleCardToggle}
+                onViewStrategy={handleViewStrategy}
+                containerHeight="calc(100vh - 500px)"
+              />
             </div>
           ) : loading ? (
             // Loading Skeletons

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import WarningIcon from '@mui/icons-material/Warning';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import Chatbot from '../components/Chatbot';
 
@@ -25,7 +26,7 @@ function RetentionStrategyPage() {
     return null; // Will redirect via useEffect
   }
 
-  const { id, strategy } = customer;
+  const { id, strategy, reason } = customer;
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased h-screen flex flex-col">
@@ -77,6 +78,19 @@ function RetentionStrategyPage() {
               Customer ID: <span className="font-bold text-slate-900 dark:text-white">{id}</span>
             </p>
           </div>
+
+          {/* Risk Drivers Card */}
+          {reason && (
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8">
+              <div className="flex items-center gap-2 mb-3 text-risk-high">
+                <WarningIcon className="w-[18px] h-[18px]" />
+                <h3 className="font-black text-[10px] uppercase tracking-widest">Risk Drivers</h3>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <span className="font-bold text-slate-900 dark:text-white">{reason}</span>
+              </p>
+            </div>
+          )}
 
           {/* Retention Strategy Card */}
           <div className="bg-white dark:bg-slate-800 p-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8">

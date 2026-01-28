@@ -14,23 +14,8 @@
     transform-origin: 50% 50%;
   }
   
-  .customer-details {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-  }
-  
-  .customer-card:focus-within .customer-details {
-    max-height: 500px;
-  }
-  
-  .customer-card:focus-within {
-    @apply ring-2 ring-primary border-transparent shadow-xl;
-  }
-  
-  .customer-card:focus-within .expand-indicator {
-    @apply rotate-180;
-  }
+  /* Removed max-height based animation - now using transform/opacity in component */
+  /* This prevents layout thrashing and improves performance */
   
   .scrollbar-hide::-webkit-scrollbar {
     display: none;

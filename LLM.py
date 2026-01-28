@@ -29,7 +29,7 @@ llm = LLM(
         model="openrouter/nvidia/nemotron-3-nano-30b-a3b:free",
         api_key=llm_key,
         base_url="https://openrouter.ai/api/v1",
-        temperature=0.1
+        temperature=0.3
     )
 
 def _retrieve_rag_context(query: str) -> List[str]:
@@ -50,13 +50,13 @@ def _prepare_crewai_input(query: str, context: str) -> str:
     prompt = retention_prompt["retention_prompt"].format(query=query,rag_context_chunks=context)
     agent = Agent(
         role="Telecom Customer Retention Specialist",
-        goal="Propose domain specific telecom retention strategies to prevent churn.",
+        goal="Propose domain specific telecom retention strategies to prevent churn based on the reasons they could be churned.",
         backstory="You are a Telecom Customer Retention Specialist. You are tasked with proposing retention strategies to prevent churn.",
         llm=llm    
     )
     task = Task(
         description=prompt,
-        expected_output="A potential retention strategy that could be applied to the customer returned as a string.",
+        expected_output="A potential retention strategy that could be applied to the customer based on the reasons they could be churned returned as a string.",
         agent=agent
     )
     crew = Crew(
@@ -148,7 +148,7 @@ class ChurnReasoningPipeline:
         reasons_list =[]
         limit=0
         for key,value in customer_insight_values.items():
-            if(limit == 1):
+            if(limit == 2):
                 break
             prompt = self.prompt_templates["prompt1"].format(
                 customer_data=json.dumps(value)

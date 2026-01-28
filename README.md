@@ -7,9 +7,12 @@
 ---
 
 ## Overview
+This agent implements an **LLM-based reasoning pipeline** for customer churn prediction and explanation. It combines **SHAP feature importance** with **large language models (LLMs)** to generate human-readable insights, helping businesses understand why a customer may churn and identify actionable strategies for retention.
 ![Application](Main_Page/Application.png)
-This project implements an **LLM-based reasoning pipeline** for customer churn prediction and explanation. It combines **SHAP feature importance** with **large language models (LLMs)** to generate human-readable insights, helping businesses understand why a customer may churn and identify actionable strategies for retention.
 
+Once you upload your customer data, the agent generates the following:
+
+![Application](Main_Page/Retention.png)
 Key features include:
 
 - End-to-end workflow for **churn prediction and reasoning**. **(in progress)** 
