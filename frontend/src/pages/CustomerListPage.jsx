@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -15,6 +16,12 @@ import CustomerProfileDrawer from '../components/CustomerProfileDrawer';
  * This component consumes context state and handles UI rendering only.
  */
 function CustomerListPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isDashboard = location.pathname === '/';
+  const isAssistant = location.pathname === '/assistant';
+
   // Consume all state from AppContext
   // State persists when navigating away and back because AppProvider remains mounted
   const {
@@ -159,6 +166,30 @@ function CustomerListPage() {
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Dashboard Title */}
           <div className="flex flex-col gap-6 mb-8">
+            {/* Navigation Pills (reuse existing pill style) */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={() => navigate('/')}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-bold shadow-md transition-colors ${
+                  isDashboard
+                    ? 'bg-primary text-white shadow-primary/20'
+                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary/50'
+                }`}
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => navigate('/assistant')}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-bold shadow-md transition-colors ${
+                  isAssistant
+                    ? 'bg-primary text-white shadow-primary/20'
+                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary/50'
+                }`}
+              >
+                Knowledge Assistant
+              </button>
+            </div>
+
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">

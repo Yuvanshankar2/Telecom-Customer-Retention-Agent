@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import CustomerListPage from './pages/CustomerListPage';
 import RetentionStrategyPage from './pages/RetentionStrategyPage';
+import KnowledgeAssistantPage from './pages/KnowledgeAssistantPage';
 
 /**
  * Main App component.
@@ -15,6 +16,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<CustomerListPage />} />
+          <Route path="/assistant" element={<KnowledgeAssistantPage />} />
           <Route path="/customers/:customerId/retention" element={<RetentionStrategyPage />} />
         </Routes>
       </BrowserRouter>
