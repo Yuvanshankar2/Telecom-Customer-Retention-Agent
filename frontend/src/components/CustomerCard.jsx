@@ -1,13 +1,43 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 /**
- * Memoized SVG component for churn probability ring.
+ * Memoized SVG component for churn probability ring with animation.
  * Prevents SVG recalculation on every render.
  */
 const ChurnRingSVG = React.memo(({ churnProbability, ringColor, textColor }) => {
-  const strokeDasharray = `${churnProbability}, 100`;
+  const [animatedValue, setAnimatedValue] = useState(0);
+  const pathRef = useRef(null);
+  
+  useEffect(() => {
+    // Animate from 0 to target value
+    setAnimatedValue(0);
+    const duration = 1000; // 1 second
+    const startTime = Date.now();
+    const startValue = 0;
+    const endValue = churnProbability;
+    
+    const animate = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease-out function
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentValue = startValue + (endValue - startValue) * easeOut;
+      
+      setAnimatedValue(currentValue);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [churnProbability]);
+  
+  const strokeDasharray = `${animatedValue}, 100`;
   
   return (
     <div className="relative w-24 h-24">
@@ -22,6 +52,7 @@ const ChurnRingSVG = React.memo(({ churnProbability, ringColor, textColor }) => 
           strokeWidth="3"
         />
         <path
+          ref={pathRef}
           className={ringColor}
           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
           fill="none"
@@ -29,6 +60,7 @@ const ChurnRingSVG = React.memo(({ churnProbability, ringColor, textColor }) => 
           strokeDasharray={strokeDasharray}
           strokeLinecap="round"
           strokeWidth="3"
+          style={{ transition: 'stroke-dasharray 0.1s linear' }}
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center flex-col">
@@ -47,8 +79,30 @@ ChurnRingSVG.displayName = 'ChurnRingSVG';
  * CustomerCard component with memoization for performance optimization.
  * Only re-renders when customer data or expansion state changes.
  */
+/**
+ * Extract top SHAP features for display
+ */
+function getTopShapFeatures(shapFeatureValues, featureValues, count = 3) {
+  if (!shapFeatureValues || Object.keys(shapFeatureValues).length === 0) {
+    return [];
+  }
+  
+  // Sort by absolute SHAP value
+  const sorted = Object.entries(shapFeatureValues)
+    .map(([feature, shapValue]) => ({
+      feature,
+      shapValue: Math.abs(shapValue),
+      value: featureValues?.[feature] || featureValues?.[feature.toLowerCase()] || ''
+    }))
+    .sort((a, b) => b.shapValue - a.shapValue)
+    .slice(0, count);
+  
+  return sorted;
+}
+
 const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
-  const { id, churn_probability, risk_level, reason } = customer;
+  const { id, churn_probability, risk_level, reason, strategy, shap_feature_values, feature_values } = customer;
+  const [showTooltip, setShowTooltip] = useState(false);
   
   // Memoize risk colors calculation - only recalculates when risk_level or churn_probability changes
   const colors = useMemo(() => {
@@ -84,12 +138,36 @@ const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
     }
   }, [risk_level, churn_probability]);
   
+  // Get top SHAP features for key drivers
+  const topFeatures = useMemo(() => {
+    return getTopShapFeatures(shap_feature_values, feature_values, 3);
+  }, [shap_feature_values, feature_values]);
+  
+  // Format feature name for display
+  const formatFeatureName = (name) => {
+    return name
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+  };
+  
+  // Format feature value for display
+  const formatFeatureValue = (value) => {
+    if (typeof value === 'number') {
+      if (value % 1 === 0) return value.toString();
+      return value.toFixed(2);
+    }
+    return String(value);
+  };
+  
   return (
     <div
-      className={`customer-card bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all cursor-pointer group outline-none h-fit ${
+      className={`customer-card bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all cursor-pointer group outline-none h-fit relative ${
         isExpanded ? 'ring-2 ring-primary border-transparent shadow-xl' : ''
       }`}
       tabIndex={0}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
       onClick={(e) => {
         // Don't toggle if clicking interactive elements (buttons, icons)
         const target = e.target;
@@ -132,6 +210,36 @@ const CustomerCard = ({ customer, isExpanded, onToggle, onViewStrategy }) => {
           textColor={colors.text}
         />
       </div>
+      
+      {/* Key Driver Lines */}
+      {topFeatures.length > 0 && (
+        <div className="text-xs text-slate-500 dark:text-slate-400 text-center px-2 mb-2">
+          {topFeatures.map((item, idx) => (
+            <span key={item.feature}>
+              {formatFeatureName(item.feature)}: {formatFeatureValue(item.value)}
+              {idx < topFeatures.length - 1 && ' · '}
+            </span>
+          ))}
+        </div>
+      )}
+      
+      {/* Hover Tooltip */}
+      {showTooltip && (reason || strategy) && (
+        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg pointer-events-none">
+          {reason && (
+            <div className="mb-2">
+              <p className="text-xs font-bold text-slate-900 dark:text-white mb-1">Risk Drivers</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{reason}</p>
+            </div>
+          )}
+          {strategy && (
+            <div>
+              <p className="text-xs font-bold text-primary mb-1">Strategy</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">{strategy}</p>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Collapsible Details - Using conditional rendering for react-window compatibility */}
       {/* Content only exists in DOM when expanded, ensuring real height changes */}
@@ -176,6 +284,8 @@ export default React.memo(CustomerCard, (prevProps, nextProps) => {
     prevProps.isExpanded === nextProps.isExpanded &&
     prevProps.customer.churn_probability === nextProps.customer.churn_probability &&
     prevProps.customer.risk_level === nextProps.customer.risk_level &&
-    prevProps.customer.reason === nextProps.customer.reason
+    prevProps.customer.reason === nextProps.customer.reason &&
+    JSON.stringify(prevProps.customer.shap_feature_values) === JSON.stringify(nextProps.customer.shap_feature_values) &&
+    JSON.stringify(prevProps.customer.feature_values) === JSON.stringify(nextProps.customer.feature_values)
   );
 });

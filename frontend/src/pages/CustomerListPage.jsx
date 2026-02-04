@@ -1,5 +1,4 @@
-import React, { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useMemo } from 'react';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -8,6 +7,7 @@ import { useApp } from '../context/AppContext';
 import FileUpload from '../components/FileUpload';
 import VirtualizedCustomerGrid from '../components/VirtualizedCustomerGrid';
 import KPICards from '../components/KPICards';
+import CustomerProfileDrawer from '../components/CustomerProfileDrawer';
 
 /**
  * CustomerListPage component displays the main dashboard with customer churn data.
@@ -15,8 +15,6 @@ import KPICards from '../components/KPICards';
  * This component consumes context state and handles UI rendering only.
  */
 function CustomerListPage() {
-  const navigate = useNavigate();
-  
   // Consume all state from AppContext
   // State persists when navigating away and back because AppProvider remains mounted
   const {
@@ -35,6 +33,16 @@ function CustomerListPage() {
     setSearchQuery,
     sortType,
     setSortType,
+    planTypeFilter,
+    setPlanTypeFilter,
+    contractTypeFilter,
+    setContractTypeFilter,
+    regionFilter,
+    setRegionFilter,
+    selectedCustomer,
+    setSelectedCustomer,
+    isDrawerOpen,
+    setIsDrawerOpen,
     handleFileSelect,
   } = useApp();
 
@@ -49,13 +57,61 @@ function CustomerListPage() {
   }, []); // Empty deps array - setExpandedCardId is stable from context
 
   /**
-   * Navigate to retention strategy page for a customer.
+   * Open customer profile drawer.
    * Memoized with useCallback to prevent unnecessary re-renders.
-   * @param {Object} customer - The customer object to view strategy for
+   * @param {Object} customer - The customer object to view profile for
    */
   const handleViewStrategy = useCallback((customer) => {
-    navigate(`/customers/${customer.id}/retention`, { state: { customer } });
-  }, [navigate]);
+    setSelectedCustomer(customer);
+    setIsDrawerOpen(true);
+  }, [setSelectedCustomer, setIsDrawerOpen]);
+
+  /**
+   * Close drawer
+   */
+  const handleCloseDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
+    setSelectedCustomer(null);
+  }, [setIsDrawerOpen, setSelectedCustomer]);
+
+  /**
+   * Clear all filters
+   */
+  const handleClearFilters = useCallback(() => {
+    setActiveFilter('all');
+    setPlanTypeFilter('');
+    setContractTypeFilter('');
+    setRegionFilter('');
+    setSearchQuery('');
+  }, [setActiveFilter, setPlanTypeFilter, setContractTypeFilter, setRegionFilter, setSearchQuery]);
+
+  // Get unique filter values
+  const uniquePlanTypes = useMemo(() => {
+    const plans = new Set();
+    normalizedCustomers.forEach(c => {
+      const plan = c.internet_service || c.feature_values?.InternetService || c.feature_values?.internet_service;
+      if (plan) plans.add(plan);
+    });
+    return Array.from(plans).sort();
+  }, [normalizedCustomers]);
+
+  const uniqueContractTypes = useMemo(() => {
+    const contracts = new Set();
+    normalizedCustomers.forEach(c => {
+      const contract = c.contract_type || c.feature_values?.Contract || c.feature_values?.contract;
+      if (contract) contracts.add(contract);
+    });
+    return Array.from(contracts).sort();
+  }, [normalizedCustomers]);
+
+  const uniqueRegions = useMemo(() => {
+    const regions = new Set();
+    normalizedCustomers.forEach(c => {
+      const region = c.feature_values?.Region || c.feature_values?.region;
+      if (region) regions.add(region);
+    });
+    return Array.from(regions).sort();
+  }, [normalizedCustomers]);
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased h-screen flex flex-col">
@@ -112,29 +168,16 @@ function CustomerListPage() {
                   Customers sorted by descending churn probability.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSortType('probability-desc')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold shadow-sm transition-colors ${
-                    sortType === 'probability-desc'
-                      ? 'bg-primary text-white border-primary shadow-primary/20'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
-                  }`}
+              <div className="flex items-center gap-2">
+                <select
+                  value={sortType}
+                  onChange={(e) => setSortType(e.target.value)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold shadow-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-primary/20 outline-none"
                 >
-                  <SortIcon className="w-4 h-4" />
-                  Probability: High to Low
-                </button>
-                <button
-                  onClick={() => setSortType('id-asc')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold shadow-sm transition-colors ${
-                    sortType === 'id-asc'
-                      ? 'bg-primary text-white border-primary shadow-primary/20'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <SortIcon className="w-4 h-4" />
-                  Sort by ID
-                </button>
+                  <option value="highest-risk">Highest Risk</option>
+                  <option value="lowest-risk">Lowest Risk</option>
+                  <option value="id-asc">Sort by ID</option>
+                </select>
               </div>
             </div>
 
@@ -166,9 +209,10 @@ function CustomerListPage() {
             </div>
           )}
 
-          {/* Filter Pills */}
+          {/* Filter Pills and Dropdowns */}
           {normalizedCustomers.length > 0 && (
-            <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide sticky top-[-1px] bg-background-light/95 dark:bg-background-dark/95 backdrop-blur z-40 py-4 border-b border-transparent">
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide sticky top-[-1px] bg-background-light/95 dark:bg-background-dark/95 backdrop-blur z-40 py-4 border-b border-transparent">
               <button
                 onClick={() => setActiveFilter('all')}
                 className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-bold shadow-md transition-colors ${
@@ -209,6 +253,54 @@ function CustomerListPage() {
               >
                 Low Risk (&lt;40%)
               </button>
+              </div>
+              
+              {/* Dropdown Filters */}
+              <div className="flex items-center gap-3 flex-wrap mb-4">
+                {uniquePlanTypes.length > 0 && (
+                  <select
+                    value={planTypeFilter}
+                    onChange={(e) => setPlanTypeFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-primary/20 outline-none"
+                  >
+                    <option value="">All Plan Types</option>
+                    {uniquePlanTypes.map(plan => (
+                      <option key={plan} value={plan}>{plan}</option>
+                    ))}
+                  </select>
+                )}
+                
+                {uniqueContractTypes.length > 0 && (
+                  <select
+                    value={contractTypeFilter}
+                    onChange={(e) => setContractTypeFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-primary/20 outline-none"
+                  >
+                    <option value="">All Contract Types</option>
+                    {uniqueContractTypes.map(contract => (
+                      <option key={contract} value={contract}>{contract}</option>
+                    ))}
+                  </select>
+                )}
+                
+                {uniqueRegions.length > 0 && (
+                  <select
+                    value={regionFilter}
+                    onChange={(e) => setRegionFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-primary/20 outline-none"
+                  >
+                    <option value="">All Regions</option>
+                    {uniqueRegions.map(region => (
+                      <option key={region} value={region}>{region}</option>
+                    ))}
+                  </select>
+                )}
+                
+                {/* Customer Count Summary */}
+                <div className="ml-auto text-sm text-slate-500 dark:text-slate-400">
+                  Showing {filteredCustomers.length} of {normalizedCustomers.length} customers
+                </div>
+              </div>
             </div>
           )}
 
@@ -253,8 +345,23 @@ function CustomerListPage() {
                   ? 'Upload a CSV file to begin analysis'
                   : 'No customers match your filters'}
               </p>
+              {normalizedCustomers.length > 0 && (
+                <button
+                  onClick={handleClearFilters}
+                  className="px-6 py-2 rounded-lg bg-primary text-white text-sm font-bold shadow-sm hover:bg-primary/90 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           )}
+          
+          {/* Customer Profile Drawer */}
+          <CustomerProfileDrawer
+            customer={selectedCustomer}
+            isOpen={isDrawerOpen}
+            onClose={handleCloseDrawer}
+          />
         </div>
       </main>
     </div>

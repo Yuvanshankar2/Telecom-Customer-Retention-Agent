@@ -244,15 +244,23 @@ def execute_pipeline(initial_state: Optional[Dict] = None) -> State:
     pipeline_instance = ChurnReasoningPipeline(state=initial_state)
     result = pipeline_instance.run()
     customer_churn=[]
+    customer_insights = {}
     for i, (key, customer_insight) in enumerate(result["customer_insights_values"].items(), start=1):
         customer_churn.append({
             "id":key,
             "churn_probability": customer_insight['churn_probability']
         })
+        # Include SHAP data for each customer
+        customer_insights[key] = {
+            "feature_values": customer_insight.get("feature_values", {}),
+            "shap_feature_values": customer_insight.get("shap_feature_values", {})
+        }
     customer_data={
         "customer_churn":customer_churn,
-    "customer_reasons":result["customer_reasons"],
-    "retention_strategies":result["crewai_output"]}
+        "customer_reasons":result["customer_reasons"],
+        "retention_strategies":result["crewai_output"],
+        "customer_insights": customer_insights
+    }
     return customer_data
 
 def main() -> None:

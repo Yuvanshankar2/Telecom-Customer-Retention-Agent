@@ -36,6 +36,15 @@ export function AppProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortType, setSortType] = useState('probability-desc');
   
+  // New filter state
+  const [planTypeFilter, setPlanTypeFilter] = useState('');
+  const [contractTypeFilter, setContractTypeFilter] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
+  
+  // Drawer state
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
   // Refs for polling management
   const pollingIntervalRef = useRef(null);
   const pollingStartTimeRef = useRef(null);
@@ -102,13 +111,37 @@ export function AppProvider({ children }) {
   useEffect(() => {
     let filtered = [...normalizedCustomers];
 
-    // Apply filter
+    // Apply risk level filter
     if (activeFilter === 'critical') {
       filtered = filtered.filter((c) => c.risk_level === 'high' && c.churn_probability >= 90);
     } else if (activeFilter === 'high') {
       filtered = filtered.filter((c) => c.risk_level === 'high' && c.churn_probability >= 70 && c.churn_probability < 90);
     } else if (activeFilter === 'low') {
       filtered = filtered.filter((c) => c.risk_level === 'low');
+    }
+
+    // Apply plan type filter
+    if (planTypeFilter) {
+      filtered = filtered.filter((c) => {
+        const planType = c.internet_service || c.feature_values?.InternetService || c.feature_values?.internet_service;
+        return planType && planType.toLowerCase() === planTypeFilter.toLowerCase();
+      });
+    }
+
+    // Apply contract type filter
+    if (contractTypeFilter) {
+      filtered = filtered.filter((c) => {
+        const contractType = c.contract_type || c.feature_values?.Contract || c.feature_values?.contract;
+        return contractType && contractType.toLowerCase() === contractTypeFilter.toLowerCase();
+      });
+    }
+
+    // Apply region filter (if available)
+    if (regionFilter) {
+      filtered = filtered.filter((c) => {
+        const region = c.feature_values?.Region || c.feature_values?.region;
+        return region && region.toLowerCase() === regionFilter.toLowerCase();
+      });
     }
 
     // Apply search - only match Customer ID
@@ -120,8 +153,10 @@ export function AppProvider({ children }) {
     }
 
     // Sort based on sortType
-    if (sortType === 'probability-desc') {
+    if (sortType === 'probability-desc' || sortType === 'highest-risk') {
       filtered.sort((a, b) => b.churn_probability - a.churn_probability);
+    } else if (sortType === 'lowest-risk') {
+      filtered.sort((a, b) => a.churn_probability - b.churn_probability);
     } else if (sortType === 'id-asc') {
       filtered.sort((a, b) => {
         // Extract numeric part for natural sort (Customer11, Customer12, Customer2 → Customer2, Customer11, Customer12)
@@ -133,7 +168,7 @@ export function AppProvider({ children }) {
     }
 
     setFilteredCustomers(filtered);
-  }, [normalizedCustomers, activeFilter, searchQuery, sortType]);
+  }, [normalizedCustomers, activeFilter, searchQuery, sortType, planTypeFilter, contractTypeFilter, regionFilter]);
 
   /**
    * Poll the task status endpoint to check pipeline progress
@@ -241,6 +276,20 @@ export function AppProvider({ children }) {
     
     // Handlers
     handleFileSelect,
+    
+    // New filter state
+    planTypeFilter,
+    setPlanTypeFilter,
+    contractTypeFilter,
+    setContractTypeFilter,
+    regionFilter,
+    setRegionFilter,
+    
+    // Drawer state
+    selectedCustomer,
+    setSelectedCustomer,
+    isDrawerOpen,
+    setIsDrawerOpen,
   };
 
   return (

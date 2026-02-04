@@ -11,7 +11,13 @@ export function calculateKPIs(customers) {
       criticalRisks: 0,
       avgScore: 0,
       retentionSuccess: 0,
-      monthlyMRRAtRisk: 0,
+      totalCustomers: 0,
+      riskDistribution: {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
     };
   }
   
@@ -27,56 +33,88 @@ export function calculateKPIs(customers) {
   const lowRiskCount = customers.filter((customer) => customer.risk_level === 'low').length;
   const retentionSuccess = (lowRiskCount / customers.length) * 100;
   
-  // Monthly MRR at Risk: estimated value (assuming average $50/month per customer)
-  // In real scenario, this would come from customer data
-  const avgMonthlyCharge = 50; // Estimated average monthly charge
-  const monthlyMRRAtRisk = customers.reduce(
-    (sum, customer) => sum + (customer.churn_probability / 100) * avgMonthlyCharge,
-    0
-  );
+  // Risk Distribution
+  const riskDistribution = {
+    critical: customers.filter((c) => c.risk_level === 'high' && c.churn_probability >= 90).length,
+    high: customers.filter((c) => c.risk_level === 'high' && c.churn_probability >= 70 && c.churn_probability < 90).length,
+    medium: customers.filter((c) => c.risk_level === 'medium').length,
+    low: customers.filter((c) => c.risk_level === 'low').length,
+  };
   
   return {
     criticalRisks,
     avgScore: Math.round(avgScore * 10) / 10, // Round to 1 decimal place
     retentionSuccess: Math.round(retentionSuccess),
+    totalCustomers: customers.length,
+    riskDistribution,
   };
 }
 
 const KPICards = ({ customers }) => {
-  const { criticalRisks, avgScore, retentionSuccess } = calculateKPIs(customers);
-  
-  const formatMRR = (value) => {
-    if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}k`;
-    }
-    return `$${value}`;
-  };
+  const { criticalRisks, avgScore, retentionSuccess, totalCustomers, riskDistribution } = calculateKPIs(customers);
   
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {/* Critical Risks */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
-          Critical Risks
-        </p>
-        <p className="text-xl font-black text-risk-high">{criticalRisks}</p>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Critical Risks */}
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+            Critical Risks
+          </p>
+          <p className="text-xl font-black text-risk-high">{criticalRisks}</p>
+        </div>
+        
+        {/* Avg Score */}
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+            Avg Risk of Churn
+          </p>
+          <p className="text-xl font-black">{avgScore}%</p>
+        </div>
+        
+        {/* Retention Success */}
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+            Low Risk Customers
+          </p>
+          <p className="text-xl font-black text-risk-low">{retentionSuccess}%</p>
+        </div>
+        
+        {/* Total Customers */}
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+            Total Customers
+          </p>
+          <p className="text-xl font-black">{totalCustomers}</p>
+        </div>
       </div>
       
-      {/* Avg Score */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
-          Avg Risk of Churn
-        </p>
-        <p className="text-xl font-black">{avgScore}%</p>
-      </div>
-      
-      {/* Retention Success */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
-          Low Risk Customers
-        </p>
-        <p className="text-xl font-black text-risk-low">{retentionSuccess}%</p>
-      </div>
+      {/* Risk Distribution */}
+      {customers.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+            Risk Distribution
+          </p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Critical:</span>
+              <span className="text-sm font-black text-risk-high">{riskDistribution.critical}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">High:</span>
+              <span className="text-sm font-black text-risk-high">{riskDistribution.high}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Medium:</span>
+              <span className="text-sm font-black text-risk-medium">{riskDistribution.medium}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Low:</span>
+              <span className="text-sm font-black text-risk-low">{riskDistribution.low}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
