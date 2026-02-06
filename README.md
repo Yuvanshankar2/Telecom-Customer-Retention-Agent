@@ -17,7 +17,7 @@ Once you upload your customer data, the agent generates the following:
 
 The agent also provides users with a chatbot assistant
 
-![Application](Main_Page/Risk_Drivers.png)
+![Application](Main_Page/Chatbot.png)
 
 Key features include:
 
