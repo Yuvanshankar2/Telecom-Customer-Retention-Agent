@@ -7,7 +7,7 @@ class Data_Processing():
     def __init__(self,df):
         self.df= df
 
-    def processData(self):
+    def processData(self,process_mode="training"):
         
         self.df["isElectronic"] = self.df["PaymentMethod"]
         for x in range(self.df.shape[0]):
@@ -93,13 +93,15 @@ class Data_Processing():
                 self.df.iloc[x,self.df.columns.get_loc("StreamingMovies")] = 0
         self.df["StreamingMovies"] = self.df["StreamingMovies"].astype(int)
 
-        for x in range(self.df.shape[0]):
-            if(self.df.iloc[x,self.df.columns.get_loc("Churn")] == "Yes"):
-                self.df.iloc[x,self.df.columns.get_loc("Churn")] = 1
-            else:
-                self.df.iloc[x,self.df.columns.get_loc("Churn")] = 0
-        self.df["Churn"] = self.df["Churn"].astype(int)
-
+        if(process_mode == "training"):
+            for x in range(self.df.shape[0]):
+                if(self.df.iloc[x,self.df.columns.get_loc("Churn")] == "Yes"):
+                    self.df.iloc[x,self.df.columns.get_loc("Churn")] = 1
+                else:
+                    self.df.iloc[x,self.df.columns.get_loc("Churn")] = 0
+            self.df["Churn"] = self.df["Churn"].astype(int)
+        else:
+            self.df["Churn"] = 0
         data = self.df.drop(columns=["customerID","PaperlessBilling","gender","PhoneService","TotalCharges","InternetService","PaymentMethod","Contract","OnlineBackup","DeviceProtection"])
     
 

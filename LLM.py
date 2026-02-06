@@ -1,8 +1,11 @@
 
+import sys
 import json
 import os
 import time
 import requests
+import threading
+from datetime import datetime
 from crewai import Agent, Task, Crew, LLM
 from pathlib import Path
 from typing import Dict, List, TypedDict, Optional
@@ -13,11 +16,52 @@ from RAG_Processing.build_database import buildDB
 from FullPipeline import Application
 from llama_index.core import SimpleDirectoryReader
 
+# Security: LLM usage counter (shared with api/main.py via sys.modules)
+# Since background tasks run in the same process, we can access the counter from api.main
+def _get_llm_counter_functions():
+    """Get LLM counter functions from api.main if available."""
+    try:
+        # Check if api.main is already loaded
+        if 'api.main' in sys.modules:
+            api_main = sys.modules['api.main']
+            return api_main.check_llm_limit, api_main.increment_llm_usage
+    except (AttributeError, KeyError):
+        pass
+    
+    # Fallback: Create local functions that raise errors (should not be used in production)
+    def check_llm_limit():
+        raise RuntimeError("LLM counter not initialized. This should not happen in production.")
+    def increment_llm_usage():
+        pass
+    return check_llm_limit, increment_llm_usage
+
+# Initialize functions (will be set when api.main loads)
+_check_llm_limit_func = None
+_increment_llm_usage_func = None
+
+def _init_llm_counter():
+    """Initialize LLM counter functions (called after api.main is loaded)."""
+    global _check_llm_limit_func, _increment_llm_usage_func
+    _check_llm_limit_func, _increment_llm_usage_func = _get_llm_counter_functions()
+
+def check_llm_limit() -> None:
+    """Check if LLM usage limit reached."""
+    global _check_llm_limit_func
+    if _check_llm_limit_func is None:
+        _init_llm_counter()
+    _check_llm_limit_func()
+
+def increment_llm_usage() -> None:
+    """Increment LLM usage counter."""
+    global _increment_llm_usage_func
+    if _increment_llm_usage_func is None:
+        _init_llm_counter()
+    _increment_llm_usage_func()
+
 
 # Constants
 PROMPT_TEMPLATES_FILE = "prompts/prompt_templates.json"
 RETENTION_PROMPT_FILE = "prompts/Retention_strategy_prompt.json"
-DEFAULT_CSV_FILE = "TelcoChurn.csv"
 MODEL_NAME = "nvidia/nemotron-3-nano-30b-a3b:free"
 DEFAULT_MAX_TOKENS = 300
 TOP_FEATURES_COUNT = 10
@@ -45,6 +89,12 @@ def _retrieve_rag_context(query: str) -> List[str]:
 
 
 def _prepare_crewai_input(query: str, context: str) -> str:
+    # Security: Check LLM limit before CrewAI call (CrewAI uses OpenRouter)
+    try:
+        check_llm_limit()
+    except RuntimeError as e:
+        raise RuntimeError("Daily LLM usage limit reached. Cannot generate retention strategy.")
+    
     with open(RETENTION_PROMPT_FILE,"r") as f:
         retention_prompt = json.load(f)
     prompt = retention_prompt["retention_prompt"].format(query=query,rag_context_chunks=context)
@@ -65,6 +115,11 @@ def _prepare_crewai_input(query: str, context: str) -> str:
         verbose=False
     )
     output = crew.kickoff()
+    
+    # Security: Increment counter after successful CrewAI call
+    # Note: CrewAI may make multiple calls internally, but we increment once per function call
+    increment_llm_usage()
+    
     return str(output)
 
 
@@ -148,13 +203,24 @@ class ChurnReasoningPipeline:
         reasons_list =[]
         limit=0
         for key,value in customer_insight_values.items():
-            if(limit == 2):
+            if (limit == 2):
                 break
+            # Security: Check LLM limit before each OpenRouter call
+            try:
+                check_llm_limit()
+            except RuntimeError as e:
+                raise RuntimeError("Daily LLM usage limit reached. Cannot generate customer reasons.")
+            
             prompt = self.prompt_templates["prompt1"].format(
                 customer_data=json.dumps(value)
             )
             model_usage = {"model":MODEL_NAME,"messages":[{"role":"user","content":prompt}]}
             reply = requests.post(END_POINT,headers={"Authorization":f"Bearer {llm_key}"},json=model_usage)
+            
+            # Security: Increment counter after successful call
+            if reply.status_code == 200:
+                increment_llm_usage()
+            
             time.sleep(4)
             generated_text = reply.json()["choices"][0]["message"]["content"]
             reasons_list.append(generated_text)
@@ -226,23 +292,34 @@ class ChurnReasoningPipeline:
         
         return graph.compile()
     
-    def run(self, initial_state: Optional[Dict] = None) -> State:
-        if initial_state is None:
-            initial_state = {"customer_insights_values": {}, "customer_reasons": [],"input_file_name":"TelcoChurn.csv","crewai_output":[]}
-        
+    def run(self, initial_state: Dict) -> State:
+        # Enforce presence of input_file_name and required keys
+        if "input_file_name" not in initial_state or not initial_state["input_file_name"]:
+            raise ValueError("input_file_name is required in initial_state")
+
         flow = self.build_graph()
         result = flow.invoke(initial_state)
         
         return result
 
 
-def execute_pipeline(initial_state: Optional[Dict] = None) -> State:
-    if initial_state is None:
-        initial_state = {"customer_insights_values": {}, "customer_reasons": [],"input_file_name":None,"crewai_output":[]}
-    if initial_state["input_file_name"] is None:
-        raise ValueError("Input file name is required") 
+def execute_pipeline(input_file_name: str) -> Dict:
+    if not input_file_name or not isinstance(input_file_name, str):
+        raise ValueError("input_file_name must be a non-empty string")
+    if not os.path.exists(input_file_name):
+        raise FileNotFoundError(f"Input file not found: {input_file_name}")
+
+    # Build initial state internally
+    initial_state: State = {
+        "customer_insights_values": {},
+        "customer_reasons": [],
+        "input_file_name": input_file_name,
+        "retrieved_context": None,
+        "crewai_output": [],
+    }
+
     pipeline_instance = ChurnReasoningPipeline(state=initial_state)
-    result = pipeline_instance.run()
+    result = pipeline_instance.run(initial_state)
     customer_churn=[]
     customer_insights = {}
     for i, (key, customer_insight) in enumerate(result["customer_insights_values"].items(), start=1):
@@ -255,28 +332,19 @@ def execute_pipeline(initial_state: Optional[Dict] = None) -> State:
             "feature_values": customer_insight.get("feature_values", {}),
             "shap_feature_values": customer_insight.get("shap_feature_values", {})
         }
-    customer_data={
-        "customer_churn":customer_churn,
-        "customer_reasons":result["customer_reasons"],
-        "retention_strategies":result["crewai_output"],
-        "customer_insights": customer_insights
+    customer_data = {
+        "customer_churn": customer_churn,
+        "customer_reasons": result["customer_reasons"],
+        "retention_strategies": result["crewai_output"],
+        "customer_insights": customer_insights,
     }
     return customer_data
 
 def main() -> None:
     try:
-        initial_state = {"customer_insights_values": {}, "customer_reasons": [],"input_file_name":"TelcoChurn.csv"}
-        pipeline_instance = ChurnReasoningPipeline(state=initial_state)
-        result = pipeline_instance.run()
-        
-        # Print churn probabilities, reasons and strategies of each customer. Used for debugging.
-        for i, customer_insight in enumerate(result["customer_insights_values"], start=1):
-            print(f"Churn probability for customer {i}: {customer_insight['churn_probability']}")
-
-        for i, reason in enumerate(result["customer_reasons"], start=1):
-            print(f"Response {i}: {reason}")
-        for i, output in enumerate(result["crewai_output"], start=1):
-            print(f"CrewAI output for customer reason {i}: {output}")
+        # Debug/local usage only: run pipeline on TelcoChurn.csv
+        result = execute_pipeline("TelcoChurn.csv")
+        print(f"Debug run completed. Customers: {len(result.get('customer_churn', []))}")
     
     except FileNotFoundError as e:
         print(f"Error: File not found - {e}")

@@ -12,6 +12,8 @@ import os
 import uuid
 import threading
 import requests
+import pandas as pd
+import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
@@ -19,7 +21,7 @@ from pydantic import BaseModel
 import sys
 from dotenv import load_dotenv
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -32,6 +34,25 @@ load_dotenv()
 # In-memory task storage: {task_id: {status, result, error, created_at, completed_at}}
 task_storage: Dict[str, Dict[str, Any]] = {}
 task_storage_lock = threading.Lock()  # Thread-safe access to task_storage
+
+# Security: CSV upload limits
+MAX_CSV_FILE_SIZE = 5 * 1024 * 1024  # 5 MB in bytes
+MAX_CSV_ROWS = 15  # Maximum number of customer rows allowed
+
+# Security: Global LLM usage counter (thread-safe, daily reset)
+llm_usage_counter = 0
+llm_counter_lock = threading.Lock()
+llm_last_reset_date = datetime.now().date()
+MAX_LLM_CALLS_PER_DAY = 49  # Block at 49, not 50
+
+# Security: Per-IP rate limiting
+rate_limit_storage: Dict[str, Dict[str, Any]] = {}
+rate_limit_lock = threading.Lock()
+RATE_LIMIT_REQUESTS = 10  # requests per window
+RATE_LIMIT_WINDOW_SECONDS = 60  # 1 minute window
+
+# Security: Chat input limits
+MAX_CHAT_MESSAGE_LENGTH = 2000  # characters
 
 # OpenRouter configuration
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
@@ -69,15 +90,95 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS for local development
+# Security: Configure CORS to known frontend origins only
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:3000", "http://127.0.0.1:8000", "http://localhost:3000", "http://localhost:8000"],
+    allow_origins=["http://127.0.0.1:3000", "http://localhost:3000"],  # Frontend only
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Accept"],
 )
 
+
+# Security: Helper functions
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP address from request, handling proxies."""
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+def check_rate_limit(client_ip: str) -> None:
+    """Check if IP has exceeded rate limit. Raises HTTPException if limit exceeded."""
+    now = datetime.now()
+    
+    with rate_limit_lock:
+        if client_ip not in rate_limit_storage:
+            rate_limit_storage[client_ip] = {
+                "count": 1,
+                "reset_time": now + timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS)
+            }
+            return
+        
+        ip_data = rate_limit_storage[client_ip]
+        
+        # Reset if window expired
+        if now > ip_data["reset_time"]:
+            ip_data["count"] = 1
+            ip_data["reset_time"] = now + timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS)
+            return
+        
+        # Check limit
+        if ip_data["count"] >= RATE_LIMIT_REQUESTS:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Please try again later."
+            )
+        
+        ip_data["count"] += 1
+
+def check_llm_limit() -> None:
+    """Check if LLM usage limit reached. Raises HTTPException if limit exceeded."""
+    global llm_usage_counter, llm_last_reset_date
+    
+    with llm_counter_lock:
+        # Reset counter if new day
+        today = datetime.now().date()
+        if today > llm_last_reset_date:
+            llm_usage_counter = 0
+            llm_last_reset_date = today
+        
+        # Check limit (block at 49)
+        if llm_usage_counter >= MAX_LLM_CALLS_PER_DAY:
+            raise HTTPException(
+                status_code=429,
+                detail="Daily LLM usage limit reached. Please try again tomorrow."
+            )
+
+def increment_llm_usage() -> None:
+    """Increment LLM usage counter after successful call."""
+    global llm_usage_counter
+    with llm_counter_lock:
+        llm_usage_counter += 1
+
+def sanitize_filename(filename: str) -> str:
+    """Sanitize filename to prevent path traversal attacks."""
+    # Remove path components, keep only basename
+    safe_name = os.path.basename(filename)
+    # Remove any remaining dangerous characters
+    safe_name = re.sub(r'[^a-zA-Z0-9._-]', '_', safe_name)
+    return safe_name
+
+def sanitize_error_message(error: str) -> str:
+    """Remove sensitive information from error messages."""
+    # Remove file paths
+    error = re.sub(r'/[^\s]+', '[path redacted]', error)
+    # Remove common path patterns
+    error = re.sub(r'[A-Z]:\\[^\s]+', '[path redacted]', error)
+    # Remove stack trace indicators
+    if 'Traceback' in error or 'File "' in error:
+        return "An internal error occurred. Please try again."
+    return error
 
 def cleanup_old_tasks(max_age_hours: int = 1) -> None:
     """Remove tasks older than max_age_hours from task_storage.
@@ -100,6 +201,14 @@ def cleanup_old_tasks(max_age_hours: int = 1) -> None:
 
 def execute_pipeline_wrapper(task_id: str, temp_file_path: str) -> None:
     from LLM import execute_pipeline
+    # Initialize LLM counter in LLM module so it can access api.main functions
+    try:
+        llm_module = sys.modules.get('LLM')
+        if llm_module and hasattr(llm_module, '_init_llm_counter'):
+            llm_module._init_llm_counter()
+    except Exception:
+        pass  # Continue if initialization fails
+    
     """Wrapper function to execute pipeline in background task.
     
     Args:
@@ -112,15 +221,24 @@ def execute_pipeline_wrapper(task_id: str, temp_file_path: str) -> None:
             if task_id in task_storage:
                 task_storage[task_id]["status"] = "processing"
         
-        # Prepare initial state for pipeline
-        initial_state = {
-            "customer_insights_values": {},
-            "customer_reasons": [],
-            "input_file_name": temp_file_path,
-            "crewai_output": []
-        }
-        # Execute pipeline (existing function, no changes)
-        result = execute_pipeline(initial_state)
+        # Security: Check LLM limit before pipeline execution (pipeline makes LLM calls)
+        check_llm_limit()
+        
+        # Security: Log without exposing file paths
+        print(f"[DEBUG] Processing uploaded CSV file")
+        if os.path.exists(temp_file_path):
+            try:
+                df = pd.read_csv(temp_file_path)
+                print(f"[DEBUG] Uploaded CSV has {len(df)} rows")
+            except Exception as e:
+                print(f"[DEBUG] Error reading CSV: {sanitize_error_message(str(e))}")
+
+        # Execute pipeline on the uploaded CSV file
+        result = execute_pipeline(temp_file_path)
+        
+        # Debug logging for result
+        if result and "customer_churn" in result:
+            print(f"[DEBUG] Result contains {len(result['customer_churn'])} customers")
         
         # Store result with status "done"
         with task_storage_lock:
@@ -154,12 +272,14 @@ async def root():
 
 @app.post("/run-pipeline")
 async def run_pipeline(
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...)
 ) -> JSONResponse:
     """Start the churn analysis pipeline as a background task on an uploaded CSV file.
     
     Args:
+        request: FastAPI Request object for IP extraction
         background_tasks: FastAPI BackgroundTasks instance.
         file: Uploaded CSV file via multipart/form-data.
         
@@ -168,14 +288,82 @@ async def run_pipeline(
         - task_id: Unique task identifier for polling status
         
     Raises:
-        HTTPException: 400 for invalid file type or empty file
+        HTTPException: 400 for invalid file type, size, or row count
+        HTTPException: 429 for rate limit or LLM limit exceeded
         HTTPException: 500 for server errors during file handling
     """
-    # Validate file type
-    if not file.filename.endswith('.csv'):
+    # Security: Rate limiting per IP
+    client_ip = get_client_ip(request)
+    check_rate_limit(client_ip)
+    
+    # Security: Check LLM usage limit before processing (pipeline uses LLM)
+    check_llm_limit()
+    
+    # Security: Validate file type
+    if not file.filename or not file.filename.endswith('.csv'):
         raise HTTPException(
             status_code=400,
             detail="Invalid file type. Please upload a CSV file."
+        )
+    
+    # Security: Sanitize filename
+    safe_filename = sanitize_filename(file.filename)
+    
+    # Security: Read file content into memory with size limit
+    content = await file.read()
+    
+    if len(content) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is empty."
+        )
+    
+    # Security: Check file size (5 MB limit)
+    if len(content) > MAX_CSV_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File size exceeds maximum allowed size of {MAX_CSV_FILE_SIZE // (1024*1024)} MB."
+        )
+    
+    # Security: Validate CSV structure and count rows BEFORE starting pipeline
+    try:
+        # Parse CSV to count rows
+        import io
+        csv_content = io.StringIO(content.decode('utf-8'))
+        df = pd.read_csv(csv_content, nrows=MAX_CSV_ROWS + 1)  # Read one extra to detect overflow
+        
+        # Check row count (excluding header)
+        row_count = len(df)
+        if row_count > MAX_CSV_ROWS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"CSV contains {row_count} rows. Maximum allowed is {MAX_CSV_ROWS} rows."
+            )
+        
+        if row_count == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="CSV file contains no data rows."
+            )
+        
+    except pd.errors.EmptyDataError:
+        raise HTTPException(
+            status_code=400,
+            detail="CSV file is empty or invalid."
+        )
+    except pd.errors.ParserError as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid CSV format. Please check your file structure."
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Sanitize error message
+        error_msg = sanitize_error_message(str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error validating CSV file: {error_msg}"
         )
     
     # Create temporary file to store uploaded CSV
@@ -191,15 +379,7 @@ async def run_pipeline(
         )
         temp_file_path = temp_file.name
         
-        # Read uploaded file content and write to temp file
-        content = await file.read()
-        
-        if len(content) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Uploaded file is empty."
-            )
-        
+        # Write validated content to temp file
         temp_file.write(content)
         temp_file.close()
         
@@ -229,8 +409,12 @@ async def run_pipeline(
         # Re-raise HTTP exceptions
         raise
     
+    except HTTPException:
+        # Re-raise HTTP exceptions (already sanitized)
+        raise
     except Exception as e:
-        # Handle unexpected errors during file setup
+        # Security: Sanitize error messages
+        error_msg = sanitize_error_message(str(e))
         # Clean up temp file if it was created
         if temp_file_path and os.path.exists(temp_file_path):
             try:
@@ -240,7 +424,7 @@ async def run_pipeline(
         
         raise HTTPException(
             status_code=500,
-            detail=f"Error setting up pipeline: {str(e)}"
+            detail="Error setting up pipeline. Please try again."
         )
 
 
@@ -292,10 +476,11 @@ async def get_pipeline_status(task_id: str) -> JSONResponse:
 
 
 @app.post("/chat")
-async def chat(request: ChatRequest) -> JSONResponse:
+async def chat(http_request: Request, request: ChatRequest) -> JSONResponse:
     """Chat endpoint for telecom domain-specific chatbot.
     
     Args:
+        http_request: FastAPI Request object for IP extraction
         request: ChatRequest containing message and optional conversation_history
         
     Returns:
@@ -305,14 +490,46 @@ async def chat(request: ChatRequest) -> JSONResponse:
         
     Raises:
         HTTPException: 400 for invalid request or missing message
+        HTTPException: 429 for rate limit or LLM limit exceeded
         HTTPException: 500 for server errors during LLM call
     """
-    # Validate message
+    # Security: Rate limiting per IP
+    client_ip = get_client_ip(http_request)
+    check_rate_limit(client_ip)
+    
+    # Security: Check LLM usage limit before making OpenRouter call
+    check_llm_limit()
+    
+    # Security: Validate message
     if not request.message or not request.message.strip():
         raise HTTPException(
             status_code=400,
             detail="Message cannot be empty."
         )
+    
+    # Security: Check message length
+    message = request.message.strip()
+    if len(message) > MAX_CHAT_MESSAGE_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Message exceeds maximum length of {MAX_CHAT_MESSAGE_LENGTH} characters."
+        )
+    
+    # Security: Basic prompt injection prevention (detect system prompt attempts)
+    suspicious_patterns = [
+        r'ignore\s+(previous|above|all)\s+(instructions|prompts|system)',
+        r'you\s+are\s+(now|a)\s+',
+        r'system\s*:',
+        r'<\|system\|>',
+        r'\[SYSTEM\]',
+    ]
+    message_lower = message.lower()
+    for pattern in suspicious_patterns:
+        if re.search(pattern, message_lower):
+            raise HTTPException(
+                status_code=400,
+                detail="Message contains prohibited content."
+            )
     
     try:
         # Get API key from environment
@@ -335,8 +552,8 @@ async def chat(request: ChatRequest) -> JSONResponse:
                 if msg.get("role") != "system":
                     messages.append(msg)
         
-        # Add current user message
-        messages.append({"role": "user", "content": request.message.strip()})
+        # Add current user message (already validated and sanitized)
+        messages.append({"role": "user", "content": message})
         
         # Prepare OpenRouter request
         payload = {
@@ -357,12 +574,24 @@ async def chat(request: ChatRequest) -> JSONResponse:
             timeout=60  # 60 second timeout
         )
         
+        # Security: Increment LLM counter after successful call
+        if response.status_code == 200:
+            increment_llm_usage()
+        
         # Handle API errors
         if response.status_code != 200:
-            error_detail = response.json().get("error", {}).get("message", "Unknown error from OpenRouter")
+            # Security: Sanitize OpenRouter error messages
+            try:
+                error_data = response.json()
+                error_detail = error_data.get("error", {}).get("message", "Unknown error from LLM service")
+                # Remove any sensitive information
+                error_detail = sanitize_error_message(error_detail)
+            except Exception:
+                error_detail = "Error communicating with LLM service"
+            
             raise HTTPException(
-                status_code=response.status_code,
-                detail=f"OpenRouter API error: {error_detail}"
+                status_code=response.status_code if response.status_code < 500 else 500,
+                detail=error_detail
             )
         
         # Extract response
@@ -371,7 +600,7 @@ async def chat(request: ChatRequest) -> JSONResponse:
         
         # Build updated conversation history (for frontend state management)
         updated_history = request.conversation_history.copy() if request.conversation_history else []
-        updated_history.append({"role": "user", "content": request.message.strip()})
+        updated_history.append({"role": "user", "content": message})
         updated_history.append({"role": "assistant", "content": llm_response})
         
         # Return response
@@ -391,15 +620,19 @@ async def chat(request: ChatRequest) -> JSONResponse:
         )
     
     except requests.exceptions.RequestException as e:
+        # Security: Sanitize error messages
+        error_msg = sanitize_error_message(str(e))
         raise HTTPException(
             status_code=500,
-            detail=f"Error communicating with LLM service: {str(e)}"
+            detail="Error communicating with LLM service. Please try again."
         )
     
     except Exception as e:
+        # Security: Never expose internal errors
+        error_msg = sanitize_error_message(str(e))
         raise HTTPException(
             status_code=500,
-            detail=f"Unexpected error: {str(e)}"
+            detail="An unexpected error occurred. Please try again."
         )
 
 

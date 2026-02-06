@@ -6,6 +6,9 @@ import React from 'react';
  * @returns {Object} KPI values
  */
 export function calculateKPIs(customers) {
+  // Debug logging
+  console.log('[DEBUG] calculateKPIs called with', customers?.length, 'customers');
+  
   if (!customers || customers.length === 0) {
     return {
       criticalRisks: 0,

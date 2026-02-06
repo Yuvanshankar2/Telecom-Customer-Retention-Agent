@@ -21,6 +21,7 @@ function CustomerListPage() {
 
   const isDashboard = location.pathname === '/';
   const isAssistant = location.pathname === '/assistant';
+  const isSchema = location.pathname === '/schema';
 
   // Consume all state from AppContext
   // State persists when navigating away and back because AppProvider remains mounted
@@ -187,6 +188,16 @@ function CustomerListPage() {
                 }`}
               >
                 Knowledge Assistant
+              </button>
+              <button
+                onClick={() => navigate('/schema')}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-bold shadow-md transition-colors ${
+                  isSchema
+                    ? 'bg-primary text-white shadow-primary/20'
+                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-primary/50'
+                }`}
+              >
+                Dataset Schema
               </button>
             </div>
 

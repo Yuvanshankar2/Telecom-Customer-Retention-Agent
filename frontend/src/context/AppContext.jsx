@@ -100,10 +100,26 @@ export function AppProvider({ children }) {
 
   // Normalize customers when results change
   useEffect(() => {
-    if (results) {
-      const normalized = normalizeCustomerData(results);
-      setNormalizedCustomers(normalized);
-      setFilteredCustomers(normalized);
+    if (results && results.customer_churn) {
+      // Ensure customer_churn is a valid array
+      if (Array.isArray(results.customer_churn)) {
+        const normalized = normalizeCustomerData(results);
+        // Debug logging
+        console.log('[DEBUG] Normalized customers:', {
+          count: normalized.length,
+          sample_ids: normalized.slice(0, 3).map(c => c.id)
+        });
+        setNormalizedCustomers(normalized);
+        setFilteredCustomers(normalized);
+      } else {
+        // Invalid data format - clear everything
+        setNormalizedCustomers([]);
+        setFilteredCustomers([]);
+      }
+    } else {
+      // Clear data when results is null or missing customer_churn
+      setNormalizedCustomers([]);
+      setFilteredCustomers([]);
     }
   }, [results]);
 
@@ -185,6 +201,11 @@ export function AppProvider({ children }) {
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
         }
+        // Debug logging
+        console.log('[DEBUG] Pipeline completed, result:', {
+          customer_churn_length: statusData.result?.customer_churn?.length,
+          first_customers: statusData.result?.customer_churn?.slice(0, 3)?.map(c => c.id)
+        });
         setResults(statusData.result);
         setLoading(false);
         setTaskId(null);
@@ -225,6 +246,13 @@ export function AppProvider({ children }) {
     setNormalizedCustomers([]);
     setFilteredCustomers([]);
     setExpandedCardId(null);
+    
+    // Clear all filter states for clean slate
+    setActiveFilter('all');
+    setSearchQuery('');
+    setPlanTypeFilter('');
+    setContractTypeFilter('');
+    setRegionFilter('');
 
     // Clear any existing polling
     if (pollingIntervalRef.current) {
