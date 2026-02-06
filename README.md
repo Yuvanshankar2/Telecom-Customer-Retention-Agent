@@ -9,11 +9,16 @@
 ## Overview
 This agent implements an **LLM-based reasoning pipeline** for customer churn prediction and explanation. It combines **SHAP feature importance** with **large language models (LLMs)** to generate human-readable insights, helping businesses understand why a customer may churn and identify actionable strategies for retention.
 
-![Application](Main_Page/Application.png)
+![Application](Main_Page/MainApp_page.png)
 
 Once you upload your customer data, the agent generates the following:
 
-![Application](Main_Page/Retention.png)
+![Application](Main_Page/Risk_Drivers.png)
+
+The agent also provides users with a chatbot assistant
+
+![Application](Main_Page/Risk_Drivers.png)
+
 Key features include:
 
 - End-to-end workflow for **churn prediction and reasoning**. **(in progress)** 
@@ -231,7 +236,6 @@ The CSV file must contain the following columns in the specified order and forma
 | `PaymentMethod` | String (Categorical) | Required | Payment method used | `"Electronic check"`, `"Mailed check"`, `"Bank transfer (automatic)"`, `"Credit card (automatic)"` |
 | `MonthlyCharges` | Float | Required | Monthly charges amount | `29.85`, `56.95`, `103.70` |
 | `TotalCharges` | Float/String | Optional | Total charges amount (may be empty or numeric) | `29.85`, `1889.5`, `""` (empty) |
-| `Churn` | String (Categorical) | Required | Customer churn status | `"Yes"`, `"No"` |
 
 ### Important Notes
 
@@ -261,14 +265,6 @@ The CSV file must contain the following columns in the specified order and forma
    - Large files (>1000 rows) may take several minutes to process
 #### Data Processing Behavior
 
-
-#### Sample CSV Format
-
-```csv
-customerID,gender,SeniorCitizen,Partner,Dependents,tenure,PhoneService,MultipleLines,InternetService,OnlineSecurity,OnlineBackup,DeviceProtection,TechSupport,StreamingTV,StreamingMovies,Contract,PaperlessBilling,PaymentMethod,MonthlyCharges,TotalCharges,Churn
-7590-VHVEG,Female,0,Yes,No,1,No,No phone service,DSL,No,Yes,No,No,No,No,Month-to-month,Yes,Electronic check,29.85,29.85,No
-5575-GNVDE,Male,0,No,No,34,Yes,No,DSL,Yes,No,Yes,No,No,No,One year,No,Mailed check,56.95,1889.5,No
-```
 
 #### Getting Started with Your Own Data
 

@@ -22,9 +22,9 @@ function DatasetSchemaPage() {
     const headerRow = datasetSchema.map(col => col.name).join(',');
     
     const sampleRows = [
-      '7590-VHVEG,Female,0,Yes,No,1,No,No phone service,DSL,No,Yes,No,No,No,No,Month-to-month,Yes,Electronic check,29.85,29.85,No',
-      '5575-GNVDE,Male,0,No,No,34,Yes,No,DSL,Yes,No,Yes,No,No,No,One year,No,Mailed check,56.95,1889.5,No',
-      '3668-QPYBK,Male,1,Yes,Yes,2,Yes,No,Fiber optic,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,103.70,,Yes'
+      '7590-VHVEG,Female,0,Yes,No,1,No,No phone service,DSL,No,Yes,No,No,No,No,Month-to-month,Yes,Electronic check,29.85,29.85',
+      '5575-GNVDE,Male,0,No,No,34,Yes,No,DSL,Yes,No,Yes,No,No,No,One year,No,Mailed check,56.95,1889.5',
+      '3668-QPYBK,Male,1,Yes,Yes,2,Yes,No,Fiber optic,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,103.70,'
     ];
     
     const csvContent = [headerRow, ...sampleRows].join('\n');

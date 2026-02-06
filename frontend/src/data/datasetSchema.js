@@ -215,15 +215,6 @@ export const datasetSchema = [
     exampleValues: ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)'],
     whyItMatters: 'Electronic check users have the highest churn rate (45.3%) compared to automatic payment methods (15-19%). Payment method is a strong churn predictor.',
     group: 'payment-outcome'
-  },
-  {
-    name: 'Churn',
-    description: 'Customer churn status',
-    dataType: 'String (Categorical)',
-    required: true,
-    exampleValues: ['Yes', 'No'],
-    whyItMatters: 'Target variable for model training. Indicates whether the customer has churned, used to train the prediction model.',
-    group: 'payment-outcome'
   }
 ];
 
