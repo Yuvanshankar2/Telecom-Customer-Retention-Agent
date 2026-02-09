@@ -1,13 +1,18 @@
 import pandas as pd
+from pathlib import Path
 from Data_Processing import Data_Processing
 from Hyperparameter_Tuning import Hyperparameter_Tuning
 from ModelInference import ModelInference
 import joblib
+
+_BASE_DIR = Path(__file__).resolve().parent
+
+
 class Application():
     def __init__(self):
-        self.model = joblib.load("trained_model.pkl")
-        self.threshold = joblib.load("threshold.pkl")
-        self.explainer = joblib.load("explainer.pkl")
+        self.model = joblib.load(_BASE_DIR / "trained_model.pkl")
+        self.threshold = joblib.load(_BASE_DIR / "threshold.pkl")
+        self.explainer = joblib.load(_BASE_DIR / "explainer.pkl")
     def predictor(self,filename: str):
         print("Starting")
         data = pd.read_csv(filename)

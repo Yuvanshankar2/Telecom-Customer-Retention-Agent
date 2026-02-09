@@ -60,8 +60,9 @@ def increment_llm_usage() -> None:
 
 
 # Constants
-PROMPT_TEMPLATES_FILE = "prompts/prompt_templates.json"
-RETENTION_PROMPT_FILE = "prompts/Retention_strategy_prompt.json"
+_BASE_DIR = Path(__file__).resolve().parent
+PROMPT_TEMPLATES_FILE = str(_BASE_DIR / "prompts" / "prompt_templates.json")
+RETENTION_PROMPT_FILE = str(_BASE_DIR / "prompts" / "Retention_strategy_prompt.json")
 MODEL_NAME = "nvidia/nemotron-3-nano-30b-a3b:free"
 DEFAULT_MAX_TOKENS = 300
 TOP_FEATURES_COUNT = 10
@@ -77,7 +78,7 @@ llm = LLM(
     )
 
 def _retrieve_rag_context(query: str) -> List[str]:
-    documents= SimpleDirectoryReader(input_dir="RAG_Processing/documents").load_data()
+    documents = SimpleDirectoryReader(input_dir=str(_BASE_DIR / "RAG_Processing" / "documents")).load_data()
     semantic_chunker = Semantic_Chunker()
     semantic_chunks = semantic_chunker.chunk_start(documents)
     database = buildDB(semantic_chunks,"Semantic_Chunker")

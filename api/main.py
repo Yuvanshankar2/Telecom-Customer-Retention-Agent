@@ -91,9 +91,14 @@ app = FastAPI(
 )
 
 # Security: Configure CORS to known frontend origins only
+_frontend_url = os.environ.get("FRONTEND_URL", "").strip()
+_cors_origins = (
+    [_frontend_url] if _frontend_url
+    else ["http://127.0.0.1:3000", "http://localhost:3000"]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:3000", "http://localhost:3000"],  # Frontend only
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Accept"],
@@ -261,7 +266,7 @@ def execute_pipeline_wrapper(task_id: str, temp_file_path: str) -> None:
             try:
                 os.unlink(temp_file_path)
             except Exception as e:
-                print(f"Warning: Could not delete temp file {temp_file_path}: {e}")
+                print("Warning: Could not delete temporary file after processing")
 
 
 @app.get("/")
