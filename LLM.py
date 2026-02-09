@@ -204,8 +204,6 @@ class ChurnReasoningPipeline:
         reasons_list =[]
         limit=0
         for key,value in customer_insight_values.items():
-            if (limit == 2):
-                break
             # Security: Check LLM limit before each OpenRouter call
             try:
                 check_llm_limit()
