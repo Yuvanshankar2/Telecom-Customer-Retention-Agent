@@ -11,8 +11,6 @@ import tempfile
 import os
 import uuid
 import threading
-import requests
-import pandas as pd
 import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
@@ -103,13 +101,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def startup_build_rag_index():
-    """Build RAG index once at server startup so retrieval reuses it."""
-    from LLM import init_rag_retriever
-    init_rag_retriever()
 
 
 # Security: Helper functions
@@ -212,6 +203,7 @@ def cleanup_old_tasks(max_age_hours: int = 1) -> None:
 
 
 def execute_pipeline_wrapper(task_id: str, temp_file_path: str) -> None:
+    # Lazy import: LLM pulls in crewai, langgraph, llama_index, FullPipeline (joblib/sklearn/shap), sentence-transformers — only load when pipeline runs
     from LLM import execute_pipeline
     # Initialize LLM counter in LLM module so it can access api.main functions
     try:
@@ -240,6 +232,8 @@ def execute_pipeline_wrapper(task_id: str, temp_file_path: str) -> None:
         print(f"[DEBUG] Processing uploaded CSV file")
         if os.path.exists(temp_file_path):
             try:
+                # Lazy import: pandas used only for row-count debug log
+                import pandas as pd
                 df = pd.read_csv(temp_file_path)
                 print(f"[DEBUG] Uploaded CSV has {len(df)} rows")
             except Exception as e:
@@ -339,8 +333,9 @@ async def run_pipeline(
     
     # Security: Validate CSV structure and count rows BEFORE starting pipeline
     try:
-        # Parse CSV to count rows
+        # Lazy import: pandas used only for CSV validation (avoids loading at app startup)
         import io
+        import pandas as pd
         csv_content = io.StringIO(content.decode('utf-8'))
         df = pd.read_csv(csv_content, nrows=MAX_CSV_ROWS + 1)  # Read one extra to detect overflow
         
@@ -544,6 +539,8 @@ async def chat(http_request: Request, request: ChatRequest) -> JSONResponse:
             )
     
     try:
+        # Lazy import: requests used only for OpenRouter HTTP call (keeps startup minimal)
+        import requests
         # Get API key from environment
         llm_key = os.getenv("LLM_KEY_1")
         if not llm_key:
