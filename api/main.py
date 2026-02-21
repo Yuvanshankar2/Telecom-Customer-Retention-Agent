@@ -1,3 +1,6 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 """FastAPI backend for Churn Analysis Pipeline.
 
 This module provides a REST API endpoint to run the churn analysis pipeline
