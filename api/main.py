@@ -98,11 +98,18 @@ _cors_origins = (
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins="https://telecom-customer-retention-agent-frontend.onrender.com",
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def startup_build_rag_index():
+    """Build RAG index once at server startup so retrieval reuses it."""
+    from LLM import init_rag_retriever
+    init_rag_retriever()
 
 
 # Security: Helper functions

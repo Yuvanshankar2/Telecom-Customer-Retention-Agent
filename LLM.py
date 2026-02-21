@@ -77,14 +77,25 @@ llm = LLM(
         temperature=0.3
     )
 
-def _retrieve_rag_context(query: str) -> List[str]:
+# RAG retriever built once at server startup (or on first use for standalone runs)
+_rag_retriever = None
+
+
+def init_rag_retriever() -> None:
+    """Build RAG index once: load documents, chunk with Semantic_Chunker, build DB, store retriever."""
+    global _rag_retriever
     documents = SimpleDirectoryReader(input_dir=str(_BASE_DIR / "RAG_Processing" / "documents")).load_data()
-    semantic_chunker = Semantic_Chunker()
-    semantic_chunks = semantic_chunker.chunk_start(documents)
-    database = buildDB(semantic_chunks,"Semantic_Chunker")
-    results_retriever = database.as_retriever(similarity_top_k=5)
-    results = results_retriever.retrieve(query)
-    return results
+    semantic_chunks = Semantic_Chunker().chunk_start(documents)
+    index = buildDB(semantic_chunks, "Semantic_Chunker")
+    _rag_retriever = index.as_retriever(similarity_top_k=5)
+
+
+def _retrieve_rag_context(query: str):
+    """Return retrieved chunks from the pre-built retriever. Lazy-init if not yet built (e.g. standalone run)."""
+    global _rag_retriever
+    if _rag_retriever is None:
+        init_rag_retriever()
+    return _rag_retriever.retrieve(query)
     
     
 
